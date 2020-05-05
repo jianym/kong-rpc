@@ -39,6 +39,7 @@ krpc:
       zookeeper:
          address: localhost:2181
          namespace: test
+         #auth: admin:123 
 ```
 ### 客户端接入
 1.开启客户端 @EnableKrpcDiscover
@@ -88,6 +89,7 @@ krpc:
       zookeeper:
          address: localhost:2181
          namespace: test
+         #auth: admin:123 
 ```
 ## 负载均衡
 可以配置轮询（loop）,随机（random）,参数哈希（hash），默认轮询
@@ -143,7 +145,7 @@ krpc:
          window： 300000 #检测窗口
          sleep:  1800000 #断路打开后，多久进入半打开状态
          interval: 3000 #健康检测时间间隔
-         bucket： 桶，检测窗口划分为多少桶
+         bucket： #桶，检测窗口划分为多少桶
 ```
 
 ## 多服务端
@@ -273,7 +275,7 @@ krpc:
       socket: 
          low: 32768 # bytebuf 低水位
          height: 65536  #bytebuf 高水位
-         timeout: 3000 #写超时
+         timeout: 3000 #读超时
          back：50 #tcp接收队列大小
 ```
 
@@ -285,7 +287,7 @@ krpc:
       socket: 
          low: 32768 # bytebuf 低水位
          height: 65536  #bytebuf 高水位
-         timeout: 3000 #读超时
+         timeout: 3000 #写超时
          connection：true  #初始化建立连接
 ```
 

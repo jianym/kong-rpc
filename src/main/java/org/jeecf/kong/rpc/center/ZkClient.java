@@ -25,7 +25,7 @@ public class ZkClient {
         builder.connectString(zkProperties.getAddress()).sessionTimeoutMs(zkProperties.getSessionTimeout()).connectionTimeoutMs(zkProperties.getConnectTimeout())
                 .namespace(zkProperties.getNamespace() + "/kong-rpc").retryPolicy(retryNTimes);
         if (!StringUtils.isEmpty(zkProperties.getAuth()))
-            builder.authorization("digist", zkProperties.getAuth().getBytes());
+            builder.authorization("digest", zkProperties.getAuth().getBytes());
         return builder.build();
     }
 
