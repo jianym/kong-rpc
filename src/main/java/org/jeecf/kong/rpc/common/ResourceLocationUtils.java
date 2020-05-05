@@ -22,10 +22,10 @@ public class ResourceLocationUtils {
     }
 
     public static String buildPath(String basePath, String path) {
+        path = "/" + path;
         if (StringUtils.isNotEmpty(basePath)) {
-            path = basePath + "/" + path;
+            path = "/" + basePath + path;
         }
-
         Matcher m = p.matcher(path);
         return m.replaceAll("\\/");
     }

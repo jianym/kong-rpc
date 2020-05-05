@@ -17,7 +17,7 @@ public class ThreadContainer {
     public static final String ID = "KRPC_ID";
     public static final String SPAN = "KRPC_SPAN";
 
-    private ThreadLocal<Map<String, String>> local = new ThreadLocal<>();
+    private ThreadLocal<Map<String, String>> local = new InheritableThreadLocal<>();
 
     /**
      * 设置参数
