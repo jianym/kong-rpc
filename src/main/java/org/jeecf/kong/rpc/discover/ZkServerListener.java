@@ -76,6 +76,7 @@ public class ZkServerListener {
     private void watchServer(String alias, CuratorFramework curator) throws Exception {
         PathChildrenCache pathChildrenCache = new PathChildrenCache(curator, "/", true);
         pathChildrenCache.getListenable().addListener(new PathChildrenCacheListener() {
+
             @Override
             public void childEvent(CuratorFramework curatorFramework, PathChildrenCacheEvent pathChildrenCacheEvent) throws Exception {
                 PathChildrenCacheEvent.Type type = pathChildrenCacheEvent.getType();
@@ -83,14 +84,16 @@ public class ZkServerListener {
                     byte[] source = pathChildrenCacheEvent.getData().getData();
                     if (source != null) {
                         String data = new String(source);
-                        if (alias.equals(krpcClientProperties.getName()))
-                            consumerContainer.put(alias, data, buildServerNode(data, krpcClientProperties.getSocket()));
-                        else {
+                        CenterNode zkNode = JsonMapper.getInstance().readValue(data, CenterNode.class);
+                        String path = zkNode.getIp() + "-" + zkNode.getPort();
+                        if (alias.equals(krpcClientProperties.getName())) {
+                            consumerContainer.put(alias, path, buildServerNode(zkNode, krpcClientProperties.getSocket()));
+                        } else {
                             List<KrpcProperties> proList = krpcClientProperties.getAlias();
                             if (CollectionUtils.isNotEmpty(proList)) {
                                 for (KrpcProperties pro : proList) {
                                     if (pro.getName().equals(alias)) {
-                                        consumerContainer.put(alias, data, buildServerNode(data, pro.getSocket()));
+                                        consumerContainer.put(alias, path, buildServerNode(zkNode, pro.getSocket()));
                                         return;
                                     }
                                 }
@@ -101,10 +104,12 @@ public class ZkServerListener {
                     byte[] source = pathChildrenCacheEvent.getData().getData();
                     if (source != null) {
                         String data = new String(source);
+                        CenterNode zkNode = JsonMapper.getInstance().readValue(data, CenterNode.class);
+                        String path = zkNode.getIp() + "-" + zkNode.getPort();
                         if (alias.equals(krpcClientProperties.getName()))
-                            consumerContainer.remove(alias,data);
+                            consumerContainer.remove(alias, path);
                         else
-                            consumerContainer.remove(alias, data);
+                            consumerContainer.remove(alias, path);
                     }
                 }
             }
@@ -112,9 +117,7 @@ public class ZkServerListener {
         pathChildrenCache.start();
     }
 
-    private ServerNode buildServerNode(String source, SocketProperties properties) throws Exception {
-        String data = new String(source);
-        CenterNode zkNode = JsonMapper.getInstance().readValue(data, CenterNode.class);
+    private ServerNode buildServerNode(CenterNode zkNode, SocketProperties properties) throws Exception {
         ServerNode node = consumerContainer.new ServerNode();
         node.setState(ServerNode.STATE_INIT);
         node.setIp(zkNode.getIp());
