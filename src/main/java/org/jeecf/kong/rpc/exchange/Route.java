@@ -49,17 +49,14 @@ public abstract class Route {
             if (i > 0) {
                 log.warn("client is retry,num={},req={}", i, req);
             }
-            ServerNode server = getServerNode(alias, req.getArgs());
-            if (server == null) {
-                if (i == retry) {
-                    throw new NoServerException("no server can connection...");
-                }
-                i++;
-                continue;
+            int size = consumerContainer.size(alias);
+            if (size == 0) {
+                throw new NoServerException("no server can connection...");
             }
-            NettyClient client = server.getNettyClient();
-            boolean send = false;
             try {
+                boolean send = false;
+                ServerNode server = getServerNode(alias, req.getArgs());
+                NettyClient client = server.getNettyClient();
                 send = client.send(server.getIp(), server.getPort(), req, Serializer.KYRO);
                 if (!send) {
                     if (i == retry) {
@@ -68,7 +65,7 @@ public abstract class Route {
                     i++;
                     continue;
                 }
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 if (i == retry) {
                     throw e;
                 }
@@ -88,7 +85,7 @@ public abstract class Route {
                 continue;
             } else {
                 Response res = entity.getResponse();
-                log.debug("client is receive,req={},res={}", req,res);
+                log.debug("client is receive,req={},res={}", req, res);
                 ResponseExceptionUtils.throwException(res.getCode(), res.getMessage());
                 Object result = null;
                 if (StringUtils.isNotEmpty(res.getData())) {

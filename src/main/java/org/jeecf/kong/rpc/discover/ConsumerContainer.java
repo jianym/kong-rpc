@@ -3,6 +3,7 @@ package org.jeecf.kong.rpc.discover;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.jeecf.kong.rpc.protocol.NettyClient;
 
@@ -179,6 +180,10 @@ public class ConsumerContainer {
 
         private volatile boolean readLock = false;
 
+        private volatile int writeState = 0;
+
+        private ReentrantLock writeLock = new ReentrantLock(true);
+
         public ServerNode getHead() {
             return head;
         }
@@ -196,36 +201,50 @@ public class ConsumerContainer {
         }
 
         public boolean put(String key, ServerNode value) {
-            ServerNode node = nodeMap.get(key);
-            if (node != null)
-                return false;
-            while (true) {
-                if (state.compareAndSet(0, 1)) {
-                    readLock = false;
-                    break;
-                }
-            }
             try {
-                node = nodeMap.get(key);
+                writeLock.lock();
+                writeState++;
+                ServerNode node = nodeMap.get(key);
                 if (node != null)
                     return false;
-                if (head == null) {
-                    head = value;
-                    tail = value;
-                } else {
-                    tail.setNext(value);
-                    tail = value;
+                try {
+                    while (true) {
+                        if (state.compareAndSet(0, 1)) {
+                            readLock = false;
+                            break;
+                        }
+                    }
+                    node = nodeMap.get(key);
+                    if (node != null)
+                        return false;
+                    if (head == null) {
+                        head = value;
+                        tail = value;
+                    } else {
+                        tail.setNext(value);
+                        tail = value;
+                    }
+                    nodeMap.put(key, value);
+                    return true;
+                } finally {
+                    state.decrementAndGet();
                 }
-                nodeMap.put(key, value);
-                return true;
             } finally {
-                state.decrementAndGet();
+                if (writeLock.getHoldCount() > 0) {
+                    writeState--;
+                }
+                writeLock.unlock();
             }
         }
 
         public void remove(String key) {
             ServerNode node = nodeMap.get(key);
-            if (node != null) {
+            if (node == null) {
+                return;
+            }
+            try {
+                writeLock.lock();
+                writeState++;
                 while (true) {
                     if (state.compareAndSet(0, 1)) {
                         readLock = false;
@@ -257,6 +276,11 @@ public class ConsumerContainer {
                 } finally {
                     state.decrementAndGet();
                 }
+            } finally {
+                if (writeLock.getHoldCount() > 0) {
+                    writeState--;
+                }
+                writeLock.unlock();
             }
         }
 
@@ -266,58 +290,44 @@ public class ConsumerContainer {
 
         public ServerNode getIndex(int index) {
             while (true) {
-                if (readLock) {
+                // 并发读
+                if (readLock && writeState == 0) {
                     state.incrementAndGet();
                     break;
                 }
+                // 临界区间执行时间段，写低频 自旋，优先写
+                if (writeState > 0) {
+                    continue;
+                }
+                // 争读锁
                 if (state.compareAndSet(0, 1)) {
                     readLock = true;
                     break;
                 }
             }
-            ServerNode result = null;
-            ServerNode nextNode = head;
-            int i = 0;
-            while (nextNode != null) {
-                if (i == index) {
-                    result = nextNode;
-                    break;
+            try {
+                ServerNode result = null;
+                ServerNode nextNode = head;
+                int i = 0;
+                while (nextNode != null) {
+                    if (i == index) {
+                        result = nextNode;
+                        break;
+                    }
+                    nextNode = nextNode.next;
+                    i++;
                 }
-                nextNode = nextNode.next;
-                i++;
+                if (state.get() == 1) {
+                    readLock = false;
+                }
+                return result;
+            } finally {
+                state.decrementAndGet();
             }
-            if (state.get() == 1) {
-                readLock = false;
-            }
-            state.decrementAndGet();
-            return result;
         }
 
         public int size() {
             return nodeMap.size();
-        }
-
-        public ServerNode getLru() {
-            while (true) {
-                if (state.compareAndSet(0, 1)) {
-                    readLock = false;
-                    break;
-                }
-            }
-            try {
-                if (head != null) {
-                    tail.next = head;
-                    ServerNode nextNode = head.next;
-                    tail = head;
-                    tail.next = null;
-                    head = nextNode;
-                    return tail;
-                }
-                return null;
-            } finally {
-                state.decrementAndGet();
-            }
-
         }
 
     }
