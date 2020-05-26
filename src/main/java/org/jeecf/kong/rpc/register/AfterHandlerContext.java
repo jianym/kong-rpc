@@ -20,7 +20,7 @@ import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
  */
 public class AfterHandlerContext extends HandlerContext {
 
-    private static AfterHandlerContext context = null;
+    private volatile static AfterHandlerContext context = null;
 
     private AfterHandlerContext() {
     };

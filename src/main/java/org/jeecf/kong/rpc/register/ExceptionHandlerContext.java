@@ -20,7 +20,7 @@ import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
  */
 public class ExceptionHandlerContext extends HandlerContext {
 
-    private static ExceptionHandlerContext context = null;
+    private volatile static ExceptionHandlerContext context = null;
 
     private ExceptionHandlerContext() {
     };

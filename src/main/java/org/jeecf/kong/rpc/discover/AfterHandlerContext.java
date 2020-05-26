@@ -18,7 +18,7 @@ import org.jeecf.kong.rpc.protocol.serializer.Response;
  */
 public class AfterHandlerContext extends ClientHandlerContext {
 
-    private static AfterHandlerContext context = null;
+    private volatile static AfterHandlerContext context = null;
 
     private AfterHandlerContext() {
     };

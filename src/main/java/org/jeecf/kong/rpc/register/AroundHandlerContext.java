@@ -17,7 +17,7 @@ import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
  */
 public class AroundHandlerContext extends HandlerContext {
 
-    private static AroundHandlerContext context = null;
+    private volatile static AroundHandlerContext context = null;
 
     private AroundHandlerContext() {
     };

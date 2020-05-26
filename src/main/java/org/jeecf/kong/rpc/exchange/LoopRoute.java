@@ -12,7 +12,7 @@ import org.jeecf.kong.rpc.discover.ConsumerContainer.ServerNode;
  */
 public class LoopRoute extends Route {
 
-    private static LoopRoute route = null;
+    private volatile static LoopRoute route = null;
 
     AtomicInteger atomicInt = new AtomicInteger(0);
 

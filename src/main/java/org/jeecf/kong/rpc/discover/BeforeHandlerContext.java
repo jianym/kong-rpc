@@ -17,7 +17,7 @@ import org.jeecf.kong.rpc.protocol.serializer.Request;
  */
 public class BeforeHandlerContext extends ClientHandlerContext {
 
-    private static BeforeHandlerContext context = null;
+    private volatile static BeforeHandlerContext context = null;
 
     private BeforeHandlerContext() {
     };

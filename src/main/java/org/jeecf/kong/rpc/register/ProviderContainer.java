@@ -14,7 +14,7 @@ import org.jeecf.kong.rpc.common.RequestNode;
  */
 public class ProviderContainer {
 
-    private static ProviderContainer providerContainer = null;
+    private volatile static ProviderContainer providerContainer = null;
 
     private ProviderContainer() {
     };

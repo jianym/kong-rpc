@@ -15,7 +15,7 @@ public class ZkProperties {
      */
     private String address;
     /**
-     * 明名空间
+     * 命名空间
      */
     private String namespace;
     /**

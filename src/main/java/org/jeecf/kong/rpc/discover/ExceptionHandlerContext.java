@@ -18,7 +18,7 @@ import org.jeecf.kong.rpc.protocol.serializer.Response;
  */
 public class ExceptionHandlerContext extends ClientHandlerContext {
 
-    private static ExceptionHandlerContext context = null;
+    private volatile static ExceptionHandlerContext context = null;
 
     private ExceptionHandlerContext() {
     };

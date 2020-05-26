@@ -21,7 +21,7 @@ public class ServerDispather {
      */
     private static ThreadPoolExecutor executorService = null;
 
-    private static ServerDispather providerDispather = null;
+    private static volatile ServerDispather providerDispather = null;
     
     private ServerDispather() {
     };

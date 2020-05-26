@@ -12,7 +12,7 @@ import org.jeecf.kong.rpc.discover.ConsumerContainer.ServerNode;
  */
 public class RandomRoute extends Route {
 
-    private static RandomRoute route = null;
+    private volatile static RandomRoute route = null;
 
     Random random = new Random();
 

@@ -15,7 +15,7 @@ import org.jeecf.kong.rpc.protocol.serializer.Request;
  */
 public class AroundHandlerContext extends ClientHandlerContext {
 
-    private static AroundHandlerContext context = null;
+    private volatile static AroundHandlerContext context = null;
 
     private AroundHandlerContext() {
     };

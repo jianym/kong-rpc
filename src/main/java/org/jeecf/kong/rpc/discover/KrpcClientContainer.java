@@ -13,7 +13,7 @@ import org.jeecf.kong.rpc.common.RequestNode;
  */
 public class KrpcClientContainer {
 
-    private static KrpcClientContainer container;
+    private volatile static KrpcClientContainer container;
 
     private KrpcClientContainer() {
     }

@@ -15,7 +15,7 @@ import org.jeecf.kong.rpc.protocol.NettyClient;
  */
 public class ConsumerContainer {
 
-    private static ConsumerContainer consumerContainer = null;
+    private volatile static ConsumerContainer consumerContainer = null;
 
     private ConsumerContainer() {
     }

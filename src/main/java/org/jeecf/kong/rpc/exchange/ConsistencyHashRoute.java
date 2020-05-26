@@ -10,7 +10,7 @@ import org.jeecf.kong.rpc.discover.ConsumerContainer.ServerNode;
  */
 public class ConsistencyHashRoute extends Route {
 
-    private static ConsistencyHashRoute route = null;
+    private volatile static ConsistencyHashRoute route = null;
 
     private static final int SIZE_16 = 1 << 16;
 

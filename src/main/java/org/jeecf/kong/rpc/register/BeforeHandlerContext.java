@@ -20,7 +20,7 @@ import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
  */
 public class BeforeHandlerContext extends HandlerContext {
 
-    private static BeforeHandlerContext context = null;
+    private volatile static BeforeHandlerContext context = null;
 
     private BeforeHandlerContext() {
     };
