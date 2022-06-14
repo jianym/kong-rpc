@@ -50,5 +50,11 @@ public @interface Krpc {
      * @return
      */
     public boolean sync() default true;
+    /**
+     * 回调路径 完全限定类名
+     * 
+     * @return
+     */
+    public boolean fallback() default true;
 
 }

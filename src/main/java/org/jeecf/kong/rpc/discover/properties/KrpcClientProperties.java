@@ -20,7 +20,7 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "krpc.client")
 public class KrpcClientProperties {
     /**
-     * 名称
+     * 连接服务节点名称
      */
     private String name = "";
     /**

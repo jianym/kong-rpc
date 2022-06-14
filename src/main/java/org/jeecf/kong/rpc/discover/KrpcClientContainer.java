@@ -50,6 +50,8 @@ public class KrpcClientContainer {
 
         private Class<?> returnType;
 
+        private Object fallBack;
+
         public String getAlias() {
             return alias;
         }
@@ -88,6 +90,14 @@ public class KrpcClientContainer {
 
         public void setSync(boolean sync) {
             this.sync = sync;
+        }
+
+        public Object getFallBack() {
+            return fallBack;
+        }
+
+        public void setFallBack(Object fallBack) {
+            this.fallBack = fallBack;
         }
 
     }

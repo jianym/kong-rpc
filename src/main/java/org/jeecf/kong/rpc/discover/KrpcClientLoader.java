@@ -2,7 +2,9 @@ package org.jeecf.kong.rpc.discover;
 
 import java.lang.reflect.Method;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jeecf.kong.rpc.common.ResourceLocationUtils;
+import org.jeecf.kong.rpc.common.SpringContextUtils;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
 import org.jeecf.kong.rpc.discover.annotation.Krpc;
 import org.jeecf.kong.rpc.discover.annotation.KrpcClient;
@@ -20,8 +22,8 @@ import net.sf.cglib.proxy.Enhancer;
 public class KrpcClientLoader {
 
     private KrpcClientContainer container = KrpcClientContainer.getInstance();
-
-    public Object load(Class<?> clazz, Object bean, KrpcClient client) {
+    
+    public Object load(Class<?> clazz, Object bean, KrpcClient client) throws ClassNotFoundException {
         Method[] methods = clazz.getMethods();
         if (methods == null || methods.length == 0) {
             return null;
@@ -29,7 +31,15 @@ public class KrpcClientLoader {
         int version = client.version();
         int retry = client.retry();
         int timeout = client.timeout();
-
+        Object fallback = null;
+        if (StringUtils.isNotEmpty(client.fallback())) {
+            Class<?> fallbackClass = Class.forName(client.fallback());
+            if (fallbackClass != null && clazz.isAssignableFrom(fallbackClass)) {
+                fallback = SpringContextUtils.getBean(fallbackClass);
+            } else {
+                throw new ClassNotFoundException();
+            }
+        }
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(clazz);
         enhancer.setCallback(new ClientProxyInterceptor());
@@ -47,6 +57,11 @@ public class KrpcClientLoader {
                 node.setVersion(retry);
                 if (krpc.timeout() != 3000)
                     timeout = krpc.timeout();
+                if (krpc.fallback() && fallback != null) {
+                    node.setFallBack(fallback);
+                } else {
+                    throw new ClassNotFoundException();
+                }
                 node.setAlias(client.alias());
                 node.setPath(path);
                 node.setVersion(version);

@@ -19,6 +19,8 @@ public class ZkClient {
 
     public static final String SEVER_PATH = "server";
 
+    private static CuratorFramework singleCurator = null;
+
     public static CuratorFramework initClient(ZkProperties zkProperties) {
         RetryNTimes retryNTimes = new RetryNTimes(zkProperties.getRetry(), 3000);
         Builder builder = CuratorFrameworkFactory.builder();
@@ -29,6 +31,22 @@ public class ZkClient {
         return builder.build();
     }
 
+    public synchronized static CuratorFramework getSingleCuratorFramework(ZkProperties zkProperties) {
+        if (singleCurator == null) {
+            singleCurator = initClient(zkProperties);
+            singleCurator.start();
+        }
+        return singleCurator;
+    }
+
+    public synchronized static CuratorFramework getSingleCuratorFramework() {
+        return singleCurator;
+    }
+
+    public static String creatingParentsIfNeeded(CuratorFramework curator, CreateMode mode, String path, byte[] data) throws Exception {
+        return curator.create().creatingParentContainersIfNeeded().withMode(mode).forPath(path, data);
+    }
+    
     public static String create(CuratorFramework curator, CreateMode mode, String path, byte[] data) throws Exception {
         return curator.create().withMode(mode).forPath(path, data);
     }

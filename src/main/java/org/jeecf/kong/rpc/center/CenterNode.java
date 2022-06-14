@@ -18,5 +18,9 @@ public class CenterNode {
      * 服务端口
      */
     private Integer port;
+    /**
+     * 对外映射名称
+     */
+    private String name;
 
 }

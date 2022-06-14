@@ -50,5 +50,11 @@ public @interface KrpcClient {
      * @return
      */
     public int timeout() default 3000;
+    /**
+     * 回调路径 完全限定类名
+     * 
+     * @return
+     */
+    public String fallback() default "";
 
 }

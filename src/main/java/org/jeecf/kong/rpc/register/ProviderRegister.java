@@ -1,5 +1,9 @@
 package org.jeecf.kong.rpc.register;
 
+import org.jeecf.common.mapper.JsonMapper;
+import org.jeecf.kong.rpc.center.CenterNode;
+import org.jeecf.kong.rpc.common.DistributeId;
+import org.jeecf.kong.rpc.common.exception.NotFoundAliasException;
 import org.jeecf.kong.rpc.protocol.NettyServer;
 import org.jeecf.kong.rpc.register.annotation.KrpcServer;
 import org.jeecf.kong.rpc.register.annotation.KrpcServerAdvice;
@@ -9,6 +13,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,9 +33,6 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
 
     @Autowired
     private ServerHandlerRegister serverhandlerRegister;
-
-    @Autowired
-    private ZkRegister zkRegister;
 
     @Autowired
     private KrpcServerProperties properties;
@@ -54,12 +56,26 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
                     serverhandlerRegister.register(clazz, o);
                 }
             }
-            zkRegister.register();
+
+            String ip = DistributeId.getLocalHostLANAddress().getHostAddress();
+            Integer port = properties.getPort();
+            String name = properties.getName();
+            if (StringUtils.isEmpty(name)) {
+                throw new NotFoundAliasException("alias no exits...");
+            }
+            
+            CenterNode zkNode = new CenterNode();
+            zkNode.setIp(ip);
+            zkNode.setPort(port);
+            zkNode.setName(name);
+            String path = "/server/" + ip + "-" + port;
+            ZkRegister.register(path, JsonMapper.toJson(zkNode),properties.getZookeeper());
+            
             NettyServer server = new NettyServer(properties.getSocket());
             server.run(properties.getPort());
         } catch (Exception e) {
-           log.error(e.getMessage(),e);
-           System.exit(0);
+            log.error(e.getMessage(), e);
+            System.exit(0);
         }
 
     }

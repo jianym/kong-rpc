@@ -44,11 +44,10 @@ public class ZkServerListener {
 
         ZkProperties zkProperties = new ZkProperties();
         BeanUtils.copyProperties(krpcClientProperties.getZookeeper(), zkProperties);
-        if (krpcClientProperties.getAlias() == null) {
-            curatorMap.put("", ZkClient.initClient(zkProperties));
-        } else {
-            curatorMap.put(krpcClientProperties.getName(), ZkClient.initClient(zkProperties));
+        if (StringUtils.isEmpty(krpcClientProperties.getName())) {
+            throw new NotFoundAliasException("alias no exits...");
         }
+        curatorMap.put(krpcClientProperties.getName(), ZkClient.initClient(zkProperties));
         List<KrpcProperties> proList = krpcClientProperties.getAlias();
         if (CollectionUtils.isNotEmpty(proList)) {
             proList.forEach(action -> {
@@ -74,7 +73,7 @@ public class ZkServerListener {
     }
 
     private void watchServer(String alias, CuratorFramework curator) throws Exception {
-        PathChildrenCache pathChildrenCache = new PathChildrenCache(curator, "/", true);
+        PathChildrenCache pathChildrenCache = new PathChildrenCache(curator, "/server", true);
         pathChildrenCache.getListenable().addListener(new PathChildrenCacheListener() {
 
             @Override
@@ -86,18 +85,8 @@ public class ZkServerListener {
                         String data = new String(source);
                         CenterNode zkNode = JsonMapper.getInstance().readValue(data, CenterNode.class);
                         String path = zkNode.getIp() + "-" + zkNode.getPort();
-                        if (alias.equals(krpcClientProperties.getName())) {
-                            consumerContainer.put(alias, path, buildServerNode(zkNode, krpcClientProperties.getSocket()));
-                        } else {
-                            List<KrpcProperties> proList = krpcClientProperties.getAlias();
-                            if (CollectionUtils.isNotEmpty(proList)) {
-                                for (KrpcProperties pro : proList) {
-                                    if (pro.getName().equals(alias)) {
-                                        consumerContainer.put(alias, path, buildServerNode(zkNode, pro.getSocket()));
-                                        return;
-                                    }
-                                }
-                            }
+                        if (isRemoteNode(zkNode,alias)) {
+                            consumerContainer.put(zkNode.getName(), path, buildServerNode(zkNode, krpcClientProperties.getSocket()));
                         }
                     }
                 } else if (type.equals(PathChildrenCacheEvent.Type.CHILD_REMOVED)) {
@@ -106,15 +95,27 @@ public class ZkServerListener {
                         String data = new String(source);
                         CenterNode zkNode = JsonMapper.getInstance().readValue(data, CenterNode.class);
                         String path = zkNode.getIp() + "-" + zkNode.getPort();
-                        if (alias.equals(krpcClientProperties.getName()))
-                            consumerContainer.remove(alias, path);
-                        else
-                            consumerContainer.remove(alias, path);
+                        if (isRemoteNode(zkNode,alias)) {
+                            consumerContainer.remove(zkNode.getName(), path);
+                        }
                     }
                 }
             }
         });
         pathChildrenCache.start();
+    }
+
+    /**
+     * 判断服务节点是否为当前客户端zk 通信节点
+     * 
+     * @param zkNode
+     * @return
+     */
+    private boolean isRemoteNode(CenterNode zkNode,String alias) {
+        if (zkNode.getName().equals(alias)) {
+            return true;
+        } 
+        return false;
     }
 
     private ServerNode buildServerNode(CenterNode zkNode, SocketProperties properties) throws Exception {

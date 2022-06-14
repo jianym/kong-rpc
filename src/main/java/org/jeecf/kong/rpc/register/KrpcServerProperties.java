@@ -19,13 +19,9 @@ import lombok.Data;
 public class KrpcServerProperties {
 
     private Integer port = 20415;
-
-    private String name;
-
-    private String username;
-
-    private String password;
-
+    
+    private String name = "";
+    
     private ThreadProperties thread = new ThreadProperties();
 
     private ServerSocketProperties socket = new ServerSocketProperties();

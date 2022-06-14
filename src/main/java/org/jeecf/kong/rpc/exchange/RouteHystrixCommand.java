@@ -1,6 +1,11 @@
 package org.jeecf.kong.rpc.exchange;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.Map;
+
 import org.jeecf.common.lang.StringUtils;
+import org.jeecf.common.mapper.JsonMapper;
 import org.jeecf.kong.rpc.common.DistributeId;
 import org.jeecf.kong.rpc.common.SpringContextUtils;
 import org.jeecf.kong.rpc.common.ThreadContainer;
@@ -13,6 +18,8 @@ import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.discover.ExceptionHandlerContext;
 import org.jeecf.kong.rpc.discover.ExceptionHandlerContext.ExceptionNode;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
+import org.jeecf.kong.rpc.discover.annotation.Krpc;
+import org.jeecf.kong.rpc.discover.properties.KrpcClientProperties;
 import org.jeecf.kong.rpc.protocol.serializer.Request;
 
 import com.netflix.hystrix.HystrixCommand;
@@ -33,6 +40,8 @@ public class RouteHystrixCommand<T> extends HystrixCommand<T> {
     private static AroundHandlerContext aroundHandler = AroundHandlerContext.getInstance();
 
     private static ExceptionHandlerContext exHandler = ExceptionHandlerContext.getInstance();
+    
+    private static KrpcClientProperties properties = SpringContextUtils.getBean(KrpcClientProperties.class);
 
     private RequestClientNode node;
 
@@ -59,8 +68,8 @@ public class RouteHystrixCommand<T> extends HystrixCommand<T> {
             span = DistributeId.getId();
         }
         try {
-            if(StringUtils.isEmpty(node.getAlias())) {
-                node.setAlias("");
+            if (StringUtils.isEmpty(node.getAlias())) {
+                node.setAlias(properties.getName());
             }
             req.setClientSpan(span);
             req.setId(threadContainer.get(ThreadContainer.ID));
@@ -85,6 +94,24 @@ public class RouteHystrixCommand<T> extends HystrixCommand<T> {
         Throwable e = getFailedExecutionException();
         ExceptionNode exNode;
         try {
+            Object fallback = node.getFallBack();
+            if (fallback != null) {
+                Method m = node.getMethod();
+                Object[] args = null;
+                String jsonData = req.getArgs();
+                if (StringUtils.isNotEmpty(jsonData)) {
+                    Map<String, Object> mapArgs = JsonMapper.getInstance().readValue(jsonData, Map.class);
+                    Parameter[] ps = m.getParameters();
+                    if (ps != null) {
+                        args = new Object[ps.length];
+                        for (int i = 0; i < ps.length; i++) {
+                          Object value =  mapArgs.get(ps[i].getName());
+                          args[i] = value;
+                        }
+                    }
+                }
+               return (T) m.invoke(fallback, args);
+            }
             exNode = exHandler.exec(e, node, req, null);
             if (exNode == null) {
                 throw new KrpcClientException(e);
