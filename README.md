@@ -1,5 +1,5 @@
 # kong-rpc
-kong-rpc采用单一连接模式，使用kyro序列化，通过读写超时关闭连接。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用等
+kong-rpc采用单一连接模式，使用kyro序列化，通过读写超时关闭连接。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级等
 ## 快速开始
 ### 服务端接入
 1.开启服务端 @EnableKrpcRegister
@@ -171,10 +171,10 @@ krpc:
 客户端调用
 
 ``` 
-@KrpcClient(“/test”)
+@KrpcClient(value=“/test”,,alias="test1")
 public interface TestSservice {
     
-    @Krpc(value="/hello",alias="test")
+    @Krpc(value="/hello")
     public String hello(String hello);
     
     @Krpc("/hello",version=1,retry=2,timeout=3000)
@@ -258,7 +258,7 @@ public interface TestFallBackService implements TestService{
 
 }
 
-@KrpcClient(value=“/test”,fallback="service.test")
+@KrpcClient(value=“/test”,fallback="service.TestFallBackService")
 public interface TestSservice {
     
     @Krpc("/hello")
