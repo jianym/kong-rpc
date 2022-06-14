@@ -259,7 +259,7 @@ public interface TestFallBackService implements TestService{
 }
 
 @KrpcClient(value=“/test”,fallback="service.TestFallBackService")
-public interface TestSservice {
+public interface TestService {
     
     @Krpc("/hello")
     public String hello(String hello);
