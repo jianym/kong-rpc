@@ -35,6 +35,7 @@ public class TestController {
 ``` 
 krpc:
    server:
+      name: test
       port: 20415
       zookeeper:
          address: localhost:2181
@@ -86,6 +87,7 @@ public class TestController {
 ``` 
 krpc:
    client:
+      name: test
       zookeeper:
          address: localhost:2181
          namespace: test
@@ -155,8 +157,12 @@ krpc:
 ``` 
 krpc:
    client:
+      name: test
+      zookeeper:
+         address: localhost:2181
+         namespace: jym
       alias:
-         - name: test
+         - name: test1
            zookeeper:
               address: localhost:2181
               namespace: jym
@@ -222,7 +228,6 @@ public class ControllerAdrise {
 }
 ```
 客户端
-
 ``` 
 @KrpcClientAdvice
 public class KrpcServiceAdrise {
@@ -238,6 +243,27 @@ public class KrpcServiceAdrise {
     }
    
     ....
+}
+```
+## 服务降级
+``` 
+@Component
+public interface TestFallBackService implements TestService{
+    
+    @Override
+    public String hello(String id) {
+        System.out.println("fallback-----------");
+        return null;
+    }
+
+}
+
+@KrpcClient(value=“/test”,fallback="service.test")
+public interface TestSservice {
+    
+    @Krpc("/hello")
+    public String hello(String hello);
+
 }
 ```
 ## 客户端非注解调用
