@@ -1,5 +1,5 @@
 # kong-rpc
-kong-rpc采用单一连接模式，使用kyro序列化，通过读写超时关闭连接。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用等
+kong-rpc采用单一连接模式，使用kyro序列化，通过读写超时关闭连接。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级等
 ## 快速开始
 ### 服务端接入
 1.开启服务端 @EnableKrpcRegister
@@ -35,6 +35,7 @@ public class TestController {
 ``` 
 krpc:
    server:
+      name: test
       port: 20415
       zookeeper:
          address: localhost:2181
@@ -86,6 +87,7 @@ public class TestController {
 ``` 
 krpc:
    client:
+      name: test
       zookeeper:
          address: localhost:2181
          namespace: test
@@ -155,8 +157,12 @@ krpc:
 ``` 
 krpc:
    client:
+      name: test
+      zookeeper:
+         address: localhost:2181
+         namespace: jym
       alias:
-         - name: test
+         - name: test1
            zookeeper:
               address: localhost:2181
               namespace: jym
@@ -165,10 +171,10 @@ krpc:
 客户端调用
 
 ``` 
-@KrpcClient(“/test”)
+@KrpcClient(value=“/test”,,alias="test1")
 public interface TestSservice {
     
-    @Krpc(value="/hello",alias="test")
+    @Krpc(value="/hello")
     public String hello(String hello);
     
     @Krpc("/hello",version=1,retry=2,timeout=3000)
@@ -222,7 +228,6 @@ public class ControllerAdrise {
 }
 ```
 客户端
-
 ``` 
 @KrpcClientAdvice
 public class KrpcServiceAdrise {
@@ -238,6 +243,27 @@ public class KrpcServiceAdrise {
     }
    
     ....
+}
+```
+## 服务降级
+``` 
+@Component
+public interface TestFallBackService implements TestService{
+    
+    @Override
+    public String hello(String id) {
+        System.out.println("fallback-----------");
+        return null;
+    }
+
+}
+
+@KrpcClient(value=“/test”,fallback="service.TestFallBackService")
+public interface TestService {
+    
+    @Krpc("/hello")
+    public String hello(String hello);
+
 }
 ```
 ## 客户端非注解调用
