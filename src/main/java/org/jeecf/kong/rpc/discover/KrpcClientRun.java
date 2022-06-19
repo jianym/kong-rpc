@@ -64,6 +64,8 @@ public class KrpcClientRun {
         req.setArgs(args);
         req.setPath(clientNode.getPath());
         req.setVersion(clientNode.getVersion());
+        req.setClientId(clientNode.getClientId());
+        req.setTransferMode(clientNode.getTransferMode());
         return req;
     }
 

@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jeecf.kong.rpc.common.RequestNode;
+import org.jeecf.kong.rpc.protocol.serializer.ConstantValue;
 
 /**
  * krpclient 容器 用于@krpcClient注解
@@ -52,6 +53,10 @@ public class KrpcClientContainer {
 
         private Object fallBack;
 
+        private String clientId;
+
+        private byte transferMode = ConstantValue.WHOLE_MODE;
+
         public String getAlias() {
             return alias;
         }
@@ -98,6 +103,22 @@ public class KrpcClientContainer {
 
         public void setFallBack(Object fallBack) {
             this.fallBack = fallBack;
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
+        }
+
+        public byte getTransferMode() {
+            return transferMode;
+        }
+
+        public void setTransferMode(byte transferMode) {
+            this.transferMode = transferMode;
         }
 
     }

@@ -18,7 +18,6 @@ import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.discover.ExceptionHandlerContext;
 import org.jeecf.kong.rpc.discover.ExceptionHandlerContext.ExceptionNode;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
-import org.jeecf.kong.rpc.discover.annotation.Krpc;
 import org.jeecf.kong.rpc.discover.properties.KrpcClientProperties;
 import org.jeecf.kong.rpc.protocol.serializer.Request;
 

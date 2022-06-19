@@ -2,6 +2,7 @@ package org.jeecf.kong.rpc.protocol;
 
 import java.util.concurrent.locks.LockSupport;
 
+import org.jeecf.kong.rpc.discover.ConsumerContainer.ServerNode;
 import org.jeecf.kong.rpc.discover.ContextContainer;
 import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.protocol.serializer.MsgProtocol;
@@ -28,9 +29,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         Response res = (Response) Serializer.deserialize(protocol.getSerializer(), protocol.getContent());
         String span = res.getClientSpan();
         ContextEntity entity = ContextContainer.getInstance().get(span);
-        if (entity != null) {
+        if (entity != null ) {
             entity.setResponse(res);
             LockSupport.unpark(entity.getThread());
+            if(entity.getShutdown() == ServerNode.SHUT_DOWN) {
+                ctx.channel().close();
+            }
         }
     }
 
