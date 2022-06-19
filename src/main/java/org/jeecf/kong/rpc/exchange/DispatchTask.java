@@ -176,11 +176,11 @@ public class DispatchTask implements Runnable {
         }
         JsonNode jsonNode = JsonMapper.getJsonNode(args);
         if (parameters.length == 1) {
-            if (jsonNode == null || jsonNode.size() == 0) {
+            if (jsonNode == null) {
                 arrayO[0] = null;
             } else {
                 JsonNode pNode = jsonNode.get(parameters[0].getName());
-                if (jsonNode.size() == 1 && pNode != null && StringUtils.isNotEmpty(pNode.toString())) {
+                if (jsonNode.size() == 1 && pNode != null) {
                     arrayO[0] = JsonMapper.getInstance().treeToValue(pNode, parameters[0].getType());
                 } else {
                     arrayO[0] = JsonMapper.getInstance().treeToValue(jsonNode, parameters[0].getType());
@@ -190,11 +190,11 @@ public class DispatchTask implements Runnable {
             int i = 0;
             for (Parameter parameter : parameters) {
                 String name = parameter.getName();
-                if (jsonNode == null || jsonNode.size() == 0) {
+                if (jsonNode == null) {
                     arrayO[i] = null;
                 } else {
                     JsonNode pNode = jsonNode.get(name);
-                    if (pNode == null || pNode.size() == 0)
+                    if (pNode == null)
                         arrayO[i] = null;
                     else
                         arrayO[i] = JsonMapper.getInstance().treeToValue(pNode, parameter.getType());

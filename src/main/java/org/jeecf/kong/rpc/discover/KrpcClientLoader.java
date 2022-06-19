@@ -22,7 +22,7 @@ import net.sf.cglib.proxy.Enhancer;
 public class KrpcClientLoader {
 
     private KrpcClientContainer container = KrpcClientContainer.getInstance();
-    
+
     public Object load(Class<?> clazz, Object bean, KrpcClient client) throws ClassNotFoundException {
         Method[] methods = clazz.getMethods();
         if (methods == null || methods.length == 0) {
@@ -62,6 +62,7 @@ public class KrpcClientLoader {
                 } else {
                     throw new ClassNotFoundException();
                 }
+                node.setKeepAlive(krpc.keepAlive());
                 node.setAlias(client.alias());
                 node.setPath(path);
                 node.setVersion(version);
@@ -71,7 +72,7 @@ public class KrpcClientLoader {
                 node.setTimeout(timeout);
                 node.setSync(krpc.sync());
                 node.setReturnType(m.getReturnType());
-                container.put(proxyBean.getClass(), node);
+                container.put(proxyBean.getClass().getName() + "_" + m.getName(), node);
             }
         }
         return proxyBean;

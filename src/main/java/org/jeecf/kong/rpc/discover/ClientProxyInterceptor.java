@@ -26,7 +26,7 @@ public class ClientProxyInterceptor implements MethodInterceptor {
 
     @Override
     public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
-        RequestClientNode clientNode = container.get(obj.getClass());
+        RequestClientNode clientNode = container.get(obj.getClass().getName() + "_" + method.getName());
         if (clientNode == null) {
             throw new NotExistKrpcException("@krpc is not exist ..." + method);
         }
@@ -36,7 +36,7 @@ public class ClientProxyInterceptor implements MethodInterceptor {
             ShardData data = (ShardData) args[0];
             jsonData = data.getJsonData();
             clientNode.setClientId(data.getClientId());
-            if(!data.isClose()) {
+            if (!data.isClose()) {
                 clientNode.setTransferMode(ConstantValue.SHARD_MODE);
             } else {
                 clientNode.setTransferMode(ConstantValue.SHARD_MODE_CLOSE);

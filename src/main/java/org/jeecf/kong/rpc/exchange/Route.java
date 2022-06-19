@@ -41,7 +41,6 @@ public abstract class Route {
         ContextEntity entity = ContextContainer.getInstance().get(req.getClientSpan());
         int retry = reqNode.getRetry();
         int timeout = reqNode.getTimeout();
-        String alias = reqNode.getAlias();
         int i = 0;
         if (retry < 0) {
             retry = 0;
@@ -51,14 +50,9 @@ public abstract class Route {
             if (i > 0) {
                 log.warn("client is retry,num={},req={}", i, req);
             }
-            int size = consumerContainer.size(alias);
-            if (size == 0) {
-                throw new NoServerException("no server can connection...");
-            }
             try {
-                boolean send = false;
-                ServerNode server = getTransferServerNode(alias,req,entity);;
-                send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
+                ServerNode server = getTransferServerNode(reqNode, req, entity);
+                boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
                 if (!send) {
                     if (i == retry) {
                         throw new SocketException("socket connection fail...");
@@ -99,11 +93,19 @@ public abstract class Route {
         return null;
     }
 
-    protected ServerNode getTransferServerNode(String alias, Request req, ContextEntity entity) {
+    protected ServerNode getTransferServerNode(RequestClientNode reqNode, Request req, ContextEntity entity) {
+        int size = consumerContainer.size(reqNode.getAlias());
+        if (size == 0) {
+            throw new NoServerException("no server can connection...");
+        }
         ServerNode server = null;
         if (req.getTransferMode() == ConstantValue.WHOLE_MODE) {
-            server = this.getServerNode(alias, req.getArgs());
+            boolean keepAlive = reqNode.isKeepAlive();
+            server = this.getServerNode(reqNode.getAlias(), req.getArgs());
             if (req.getArgs().getBytes().length >= server.getBytes() && server.getBytes() > 0) {
+                keepAlive = false;
+            }
+            if (!keepAlive) {
                 entity.setShutdown(ServerNode.SHUT_DOWN);
                 NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
                 ServerNode newServer = consumerContainer.new ServerNode();
@@ -115,7 +117,7 @@ public abstract class Route {
             if (req.getTransferMode() == ConstantValue.SHARD_MODE) {
                 server = consumerContainer.get(req.getClientId());
                 if (server == null) {
-                    server = this.getServerNode(alias, req.getArgs());
+                    server = this.getServerNode(reqNode.getAlias(), req.getArgs());
                     NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
                     ServerNode shardServer = consumerContainer.new ServerNode();
                     BeanUtils.copyProperties(server, shardServer);

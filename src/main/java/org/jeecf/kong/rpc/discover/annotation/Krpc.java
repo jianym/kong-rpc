@@ -50,11 +50,19 @@ public @interface Krpc {
      * @return
      */
     public boolean sync() default true;
+
     /**
      * 回调路径 完全限定类名
      * 
      * @return
      */
     public boolean fallback() default true;
+
+    /**
+     * 是否为长连接，默认为true
+     * 
+     * @return
+     */
+    public boolean keepAlive() default true;
 
 }
