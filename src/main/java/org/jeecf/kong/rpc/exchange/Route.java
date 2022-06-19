@@ -14,9 +14,11 @@ import org.jeecf.kong.rpc.discover.ContextContainer;
 import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
 import org.jeecf.kong.rpc.protocol.NettyClient;
+import org.jeecf.kong.rpc.protocol.serializer.ConstantValue;
 import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 import org.jeecf.kong.rpc.protocol.serializer.Serializer;
+import org.springframework.beans.BeanUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -55,9 +57,8 @@ public abstract class Route {
             }
             try {
                 boolean send = false;
-                ServerNode server = getServerNode(alias, req.getArgs());
-                NettyClient client = server.getNettyClient();
-                send = client.send(server.getIp(), server.getPort(), req, Serializer.KYRO);
+                ServerNode server = getTransferServerNode(alias,req,entity);;
+                send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
                 if (!send) {
                     if (i == retry) {
                         throw new SocketException("socket connection fail...");
@@ -96,6 +97,38 @@ public abstract class Route {
             }
         }
         return null;
+    }
+
+    protected ServerNode getTransferServerNode(String alias, Request req, ContextEntity entity) {
+        ServerNode server = null;
+        if (req.getTransferMode() == ConstantValue.WHOLE_MODE) {
+            server = this.getServerNode(alias, req.getArgs());
+            if (req.getArgs().getBytes().length >= server.getBytes() && server.getBytes() > 0) {
+                entity.setShutdown(ServerNode.SHUT_DOWN);
+                NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
+                ServerNode newServer = consumerContainer.new ServerNode();
+                BeanUtils.copyProperties(server, newServer);
+                newServer.setNettyClient(client);
+                server = newServer;
+            }
+        } else {
+            if (req.getTransferMode() == ConstantValue.SHARD_MODE) {
+                server = consumerContainer.get(req.getClientId());
+                if (server == null) {
+                    server = this.getServerNode(alias, req.getArgs());
+                    NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
+                    ServerNode shardServer = consumerContainer.new ServerNode();
+                    BeanUtils.copyProperties(server, shardServer);
+                    shardServer.setNettyClient(client);
+                    consumerContainer.putShard(req.getClientId(), shardServer);
+                }
+            } else {
+                server = consumerContainer.get(req.getClientId());
+                consumerContainer.remove(req.getClientId());
+                entity.setShutdown(ServerNode.SHUT_DOWN);
+            }
+        }
+        return server;
     }
 
     /**

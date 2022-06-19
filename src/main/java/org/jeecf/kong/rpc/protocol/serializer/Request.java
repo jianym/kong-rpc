@@ -19,9 +19,17 @@ public class Request {
      */
     private String clientSpan;
     /**
+     * 客户端发送时自定义的id
+     */
+    private String clientId;
+    /**
      * 资源版本
      */
     private Integer version = 0;
+    /**
+     * 传输模式
+     */
+    private byte transferMode;
     /**
      * 资源路径
      */

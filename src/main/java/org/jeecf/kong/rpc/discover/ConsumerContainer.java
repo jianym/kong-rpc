@@ -32,6 +32,20 @@ public class ConsumerContainer {
 
     private Map<String, LruLinkedMap> aliasListMap = new ConcurrentHashMap<>();
 
+    private Map<String, ServerNode> shardMap = new ConcurrentHashMap<>();
+
+    public void putShard(String key, ServerNode value) {
+        shardMap.put(key, value);
+    }
+
+    public void remove(String key) {
+        shardMap.remove(key);
+    }
+
+    public ServerNode get(String key) {
+        return shardMap.get(key);
+    }
+
     public void put(String alias, String key, ServerNode value) {
         LruLinkedMap linkedMap = aliasListMap.get(alias);
         if (linkedMap == null) {
@@ -80,6 +94,8 @@ public class ConsumerContainer {
 
         public static final byte STATE_OPEN = 1;
 
+        public static final byte SHUT_DOWN = 1;
+
         private volatile NettyClient nettyClient;
 
         private volatile ServerNode next;
@@ -95,6 +111,8 @@ public class ConsumerContainer {
         private int height;
 
         private byte state;
+
+        private int bytes;
 
         public int getTimeout() {
             return timeout;
@@ -158,6 +176,14 @@ public class ConsumerContainer {
 
         public void setHeight(int height) {
             this.height = height;
+        }
+
+        public int getBytes() {
+            return bytes;
+        }
+
+        public void setBytes(int bytes) {
+            this.bytes = bytes;
         }
 
     }

@@ -11,6 +11,7 @@ import org.jeecf.kong.rpc.common.ThreadContainer;
 import org.jeecf.kong.rpc.common.exception.ArgsProcessingException;
 import org.jeecf.kong.rpc.common.exception.ResourceLocationNotMatchException;
 import org.jeecf.kong.rpc.common.exception.ResponseExceptionUtils;
+import org.jeecf.kong.rpc.protocol.serializer.ConstantValue;
 import org.jeecf.kong.rpc.protocol.serializer.MsgProtocol;
 import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
@@ -22,6 +23,7 @@ import org.jeecf.kong.rpc.register.ExceptionHandlerContext;
 import org.jeecf.kong.rpc.register.ExceptionHandlerContext.ExceptionNode;
 import org.jeecf.kong.rpc.register.ProviderContainer;
 import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
+import org.springframework.beans.BeanUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -77,12 +79,11 @@ public class DispatchTask implements Runnable {
         ThreadContainer threadContainer = SpringContextUtils.getBean(ThreadContainer.class);
         threadContainer.set(ThreadContainer.ID, request.getId());
         threadContainer.set(ThreadContainer.SPAN, span);
-        RequestServerNode node = null;
         Object result = null;
         Object[] arrayO = null;
         try {
             log.debug("server is receive,req={}", request);
-            node = providerContainer.get(version + "_" + path);
+            RequestServerNode node = getRequestServerNode();
             if (node == null) {
                 throw new ResourceLocationNotMatchException("resource not found " + version + "_" + path);
             }
@@ -119,7 +120,7 @@ public class DispatchTask implements Runnable {
             msg.setContent(content);
             int i = 0;
             log.debug("server is send,req={},res={}", request, response);
-            if (i < RETRY) {
+            while (i < RETRY) {
                 if (ctx.channel().isActive() && ctx.channel().isWritable()) {
                     ChannelFuture serverFuture = ctx.channel().writeAndFlush(msg);
                     serverFuture.addListener(new ChannelFutureListener() {
@@ -138,10 +139,34 @@ public class DispatchTask implements Runnable {
                 } catch (InterruptedException e) {
                     log.warn(e.getMessage(), e);
                 }
+                i++;
             }
             log.error("server send fail,req={},res={}", request, response);
 
         }
+    }
+
+    public RequestServerNode getRequestServerNode() throws InstantiationException, IllegalAccessException {
+        String path = request.getPath();
+        int version = request.getVersion();
+        byte transferMode = request.getTransferMode();
+        RequestServerNode node = null;
+        if (transferMode == ConstantValue.WHOLE_MODE)
+            node = providerContainer.get(version + "_" + path);
+        else {
+            node = providerContainer.get(version + "_" + path + "_" + request.getClientId());
+            if (node == null) {
+                RequestServerNode tmpNode = providerContainer.get(version + "_" + path);
+                node = providerContainer.new RequestServerNode();
+                BeanUtils.copyProperties(tmpNode, node);
+                node.setInstance(node.getInstance().getClass().newInstance());
+                providerContainer.add(version + "_" + path + "_" + request.getClientId(), node, ConstantValue.SHARD_MODE);
+            }
+            if (transferMode == ConstantValue.SHARD_MODE_CLOSE) {
+                providerContainer.removeShard(version + "_" + path + "_" + request.getClientId());
+            }
+        }
+        return node;
     }
 
     private Object[] getArgs(Parameter[] parameters, String args) throws Exception {

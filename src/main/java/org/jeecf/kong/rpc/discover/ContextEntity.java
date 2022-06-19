@@ -20,5 +20,9 @@ public class ContextEntity {
      * 响应数据
      */
     private volatile Response response;
+    /**
+     * 关掉netty连接
+     */
+    private volatile byte shutdown = 0;
 
 }

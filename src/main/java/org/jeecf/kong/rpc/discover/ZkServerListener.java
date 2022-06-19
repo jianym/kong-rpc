@@ -126,6 +126,7 @@ public class ZkServerListener {
         node.setTimeout(properties.getTimeout());
         node.setLow(properties.getLow());
         node.setHeight(properties.getHeight());
+        node.setBytes(properties.getBytes());
         if (properties.isConnect()) {
             NettyClient client = NettyClientFactory.getInstance(node);
             client.connection(node.getIp(), node.getPort());
