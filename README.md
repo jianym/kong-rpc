@@ -1,5 +1,5 @@
 # kong-rpc
-kong-rpc采用单一连接模式，使用kyro序列化，通过读写超时关闭连接。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级等
+kong-rpc采用单一连接模式，使用kyro序列化，通过读写超时关闭连接。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级,碎片传输等
 ## 快速开始
 ### 服务端接入
 1.开启服务端 @EnableKrpcRegister
@@ -263,6 +263,17 @@ public interface TestService {
     
     @Krpc("/hello")
     public String hello(String hello);
+
+}
+```
+## 碎片传输
+
+``` 
+@KrpcClient(value=“/test”)
+public interface TestService {
+    // shardData 内参数 clientId：每一个clientId对应一个netty客户端， 同一个组碎片传输中应保证clientId一致。  close:关闭传输，当最后一次传输时，应设置成true， jsonData:参数json字符串。 应保证方法有且只有一个ShardData参数
+    @Krpc("/hello")
+    public String hello(ShardData shardData);
 
 }
 ```
