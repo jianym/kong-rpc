@@ -53,8 +53,10 @@ public abstract class Route {
             if (i > 0) {
                 log.warn("client is retry,num={},req={}", i, req);
             }
+            
+            ServerNode server = null;
             try {
-                ServerNode server = getTransferServerNode(reqNode, req, entity);
+                server = getTransferServerNode(reqNode, req);
                 boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
                 if (!send) {
                     if (i == retry) {
@@ -69,6 +71,11 @@ public abstract class Route {
                 }
                 i++;
                 continue;
+            } finally {
+                if (!reqNode.isKeepAlive()) {
+                    if(server != null && server.getNettyClient() != null)
+                        server.getNettyClient().close();
+                }  
             }
             if (timeout <= 0) {
                 timeout = WAIT_MS;
@@ -96,7 +103,7 @@ public abstract class Route {
         return null;
     }
 
-    protected ServerNode getTransferServerNode(RequestClientNode reqNode, Request req, ContextEntity entity) {
+    protected ServerNode getTransferServerNode(RequestClientNode reqNode, Request req) {
         int size = consumerContainer.size(reqNode.getAlias());
         if (size == 0) {
             throw new NoServerException("no server can connection...");
@@ -109,7 +116,6 @@ public abstract class Route {
                 keepAlive = false;
             }
             if (!keepAlive) {
-                entity.setShutdown(ServerNode.SHUT_DOWN);
                 NettyClient client = null;
                 if (!server.isSsl())
                     client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
@@ -126,6 +132,7 @@ public abstract class Route {
             }
         } else {
             if (req.getTransferMode() == ConstantValue.SHARD_MODE) {
+                reqNode.setKeepAlive(true);
                 server = consumerContainer.get(req.getClientId());
                 if (server == null) {
                     server = this.getServerNode(reqNode.getAlias(), req.getArgs());
@@ -146,7 +153,7 @@ public abstract class Route {
             } else {
                 server = consumerContainer.get(req.getClientId());
                 consumerContainer.remove(req.getClientId());
-                entity.setShutdown(ServerNode.SHUT_DOWN);
+                reqNode.setKeepAlive(false);
             }
         }
         return server;

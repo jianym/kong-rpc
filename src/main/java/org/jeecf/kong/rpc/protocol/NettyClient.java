@@ -46,7 +46,7 @@ public class NettyClient {
         bootstrap.group(workerGroup).option(ChannelOption.WRITE_BUFFER_WATER_MARK, writeBufferWaterMark).channel(NioSocketChannel.class);
 
         bootstrap.handler(new ChannelInitializer<NioSocketChannel>() {
-            
+
             @Override
             protected void initChannel(NioSocketChannel ch) throws Exception {
                 if (engine != null) {
@@ -92,6 +92,16 @@ public class NettyClient {
             }
         });
         return true;
+    }
+
+    public void close() {
+        if (ch != null) {
+            ch.close();
+            ch = null;
+        }
+        if (bootstrap != null) {
+            bootstrap = null;
+        }
     }
 
 }
