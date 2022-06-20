@@ -1,8 +1,7 @@
 package org.jeecf.kong.rpc.exchange;
 
-import javax.net.ssl.SSLEngine;
-
 import org.jeecf.kong.rpc.common.exception.NotExistSslEngineException;
+import org.jeecf.kong.rpc.discover.ConsumerContainer;
 import org.jeecf.kong.rpc.discover.ConsumerContainer.ServerNode;
 import org.jeecf.kong.rpc.protocol.NettyClient;
 
@@ -28,10 +27,10 @@ public class NettyClientFactory {
             if (!node.isSsl())
                 node.setNettyClient(new NettyClient(node.getTimeout(), node.getLow(), node.getHeight(), null));
             else {
-                SSLEngine engine = SslSocketEngine.get(node.getName());
-                if(engine == null)
+                SslSocketEngine engine = ConsumerContainer.getInstance().getSslEngine();
+                if (engine == null || engine.get(node.getName()) == null)
                     throw new NotExistSslEngineException("not exist SSLEngine....");
-                node.setNettyClient(new NettyClient(node.getTimeout(), node.getLow(), node.getHeight(), engine));
+                node.setNettyClient(new NettyClient(node.getTimeout(), node.getLow(), node.getHeight(), engine.get(node.getName())));
             }
             node.setState(ServerNode.STATE_OPEN);
             return node.getNettyClient();

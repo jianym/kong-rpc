@@ -1,8 +1,9 @@
 package org.jeecf.kong.rpc.register;
 
-import javax.net.ssl.SSLEngine;
+import java.lang.reflect.Modifier;
 
 import org.jeecf.common.mapper.JsonMapper;
+import org.jeecf.kong.rpc.EnableKrpcRegister;
 import org.jeecf.kong.rpc.center.CenterNode;
 import org.jeecf.kong.rpc.common.DistributeId;
 import org.jeecf.kong.rpc.common.exception.NotExistSslEngineException;
@@ -50,6 +51,7 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
     public void onApplicationEvent(ContextRefreshedEvent event) {
         try {
             String[] beans = event.getApplicationContext().getBeanDefinitionNames();
+            SslServerSocketEngine engine = null;
             for (int i = 0; i < beans.length; i++) {
                 Object o = event.getApplicationContext().getBean(beans[i]);
                 Class<?> clazz = o.getClass();
@@ -58,6 +60,14 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
                 }
                 if (clazz.getAnnotation(KrpcServerAdvice.class) != null) {
                     serverhandlerRegister.register(clazz, o);
+                }
+                if (clazz.getAnnotation(EnableKrpcRegister.class) != null) {
+                    EnableKrpcRegister discover = clazz.getAnnotation(EnableKrpcRegister.class);
+                    Class<SslServerSocketEngine> engineCLass = (Class<SslServerSocketEngine>) discover.sslEngine();
+                    if (!Modifier.isAbstract(engineCLass.getModifiers())) {
+                        engine = engineCLass.newInstance();
+                        engine.init();
+                    }
                 }
             }
 
@@ -76,10 +86,9 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
             ZkRegister.register(path, JsonMapper.toJson(zkNode), properties.getZookeeper());
             NettyServer server = null;
             if (properties.isSsl()) {
-                SSLEngine engine = SslServerSocketEngine.get();
-                if(engine == null)
+                if(engine == null || engine.get() == null)
                     throw new NotExistSslEngineException("not exist server SSLEngine....");
-                server = new NettyServer(properties.getSocket(), engine);
+                server = new NettyServer(properties.getSocket(), engine.get());
             } else
                 server = new NettyServer(properties.getSocket(), null);
             server.run(properties.getPort());

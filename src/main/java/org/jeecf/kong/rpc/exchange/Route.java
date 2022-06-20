@@ -3,8 +3,6 @@ package org.jeecf.kong.rpc.exchange;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-import javax.net.ssl.SSLEngine;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jeecf.kong.rpc.common.exception.NoServerException;
 import org.jeecf.kong.rpc.common.exception.NotExistSslEngineException;
@@ -48,57 +46,51 @@ public abstract class Route {
         if (retry < 0) {
             retry = 0;
         }
+        if (timeout <= 0) {
+            timeout = WAIT_MS;
+        }
         log.debug("client is send,req={}", req);
         while (i <= retry) {
             if (i > 0) {
                 log.warn("client is retry,num={},req={}", i, req);
             }
-            
             ServerNode server = null;
             try {
                 server = getTransferServerNode(reqNode, req);
                 boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
                 if (!send) {
-                    if (i == retry) {
-                        throw new SocketException("socket connection fail...");
+                    throw new SocketException("socket connection fail...");
+                }
+                long deadline = System.currentTimeMillis() + TimeUnit.MILLISECONDS.toMillis(timeout);
+                LockSupport.parkUntil(deadline);
+                if (entity.getResponse() == null) {
+                    throw new TimeoutException();
+                } else {
+                    Response res = entity.getResponse();
+                    log.debug("client is receive,req={},res={}", req, res);
+                    ResponseExceptionUtils.throwException(res.getCode(), res.getMessage());
+                    Object result = null;
+                    if (StringUtils.isNotEmpty(res.getData())) {
+                        ObjectMapper om = new ObjectMapper();
+                        result = om.readValue(res.getData(), reqNode.getReturnType());
                     }
+                    return result;
+                }
+            } catch (Exception e) {
+                boolean isRetry = consumerContainer.getRetryManager().isRetry(e.getClass());
+                if (isRetry && i < retry) {
+                    log.error(e.getMessage());
                     i++;
                     continue;
                 }
-            } catch (Exception e) {
-                if (i == retry) {
-                    throw e;
-                }
-                i++;
-                continue;
+                throw e;
             } finally {
                 if (!reqNode.isKeepAlive()) {
-                    if(server != null && server.getNettyClient() != null)
+                    if (server != null && server.getNettyClient() != null)
                         server.getNettyClient().close();
-                }  
-            }
-            if (timeout <= 0) {
-                timeout = WAIT_MS;
-            }
-            long deadline = System.currentTimeMillis() + TimeUnit.MILLISECONDS.toMillis(timeout);
-            LockSupport.parkUntil(deadline);
-            if (entity.getResponse() == null) {
-                if (i == retry) {
-                    throw new TimeoutException();
                 }
-                i++;
-                continue;
-            } else {
-                Response res = entity.getResponse();
-                log.debug("client is receive,req={},res={}", req, res);
-                ResponseExceptionUtils.throwException(res.getCode(), res.getMessage());
-                Object result = null;
-                if (StringUtils.isNotEmpty(res.getData())) {
-                    ObjectMapper om = new ObjectMapper();
-                    result = om.readValue(res.getData(), reqNode.getReturnType());
-                }
-                return result;
             }
+
         }
         return null;
     }
@@ -120,10 +112,10 @@ public abstract class Route {
                 if (!server.isSsl())
                     client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
                 else {
-                    SSLEngine engine = SslSocketEngine.get(server.getName());
-                    if(engine == null)
+                    SslSocketEngine engine = ConsumerContainer.getInstance().getSslEngine();
+                    if (engine == null || engine.get(server.getName()) == null)
                         throw new NotExistSslEngineException("not exist SSLEngine....");
-                    client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine);
+                    client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine.get(server.getName()));
                 }
                 ServerNode newServer = consumerContainer.new ServerNode();
                 BeanUtils.copyProperties(server, newServer);
@@ -140,10 +132,10 @@ public abstract class Route {
                     if (!server.isSsl())
                         client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
                     else {
-                        SSLEngine engine = SslSocketEngine.get(server.getName());
-                        if(engine == null)
+                        SslSocketEngine engine = ConsumerContainer.getInstance().getSslEngine();
+                        if (engine == null || engine.get(server.getName()) == null)
                             throw new NotExistSslEngineException("not exist SSLEngine....");
-                        client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine);
+                        client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine.get(server.getName()));
                     }
                     ServerNode shardServer = consumerContainer.new ServerNode();
                     BeanUtils.copyProperties(server, shardServer);

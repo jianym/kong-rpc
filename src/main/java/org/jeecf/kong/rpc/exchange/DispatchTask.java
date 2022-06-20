@@ -154,7 +154,7 @@ public class DispatchTask implements Runnable {
         if (transferMode == ConstantValue.WHOLE_MODE)
             node = providerContainer.get(version + "_" + path);
         else {
-            node = providerContainer.get(version + "_" + path + "_" + request.getClientId());
+            node = providerContainer.get(version + "_" + path + "_" + request.getClientId(),ConstantValue.SHARD_MODE);
             if (node == null) {
                 RequestServerNode tmpNode = providerContainer.get(version + "_" + path);
                 node = providerContainer.new RequestServerNode();

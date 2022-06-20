@@ -10,18 +10,18 @@ import javax.net.ssl.SSLEngine;
  */
 public abstract class SslServerSocketEngine {
 
-    private static SSLEngine serverSocketEngine = null;
+    private SSLEngine serverSocketEngine = null;
 
     /**
      * 创建对象比初始化引擎
      */
     public void init() {
-        SslServerSocketEngine.serverSocketEngine = initServerSocketEngines();
+        this.serverSocketEngine = initServerSocketEngines();
     }
 
     public abstract SSLEngine initServerSocketEngines();
 
-    public static SSLEngine get() {
+    public  SSLEngine get() {
         return serverSocketEngine;
     }
 

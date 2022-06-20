@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.net.ssl.SSLEngine;
+
 /**
  * ssl 通信引擎
  * 
@@ -12,7 +13,8 @@ import javax.net.ssl.SSLEngine;
  */
 public abstract class SslSocketEngine {
 
-    private static Map<String, SSLEngine> sslSocketEngineContainer = new HashMap<>();
+    private Map<String, SSLEngine> sslSocketEngineContainer = new HashMap<>();
+
     /**
      * 创建对象比初始化引擎
      */
@@ -20,9 +22,10 @@ public abstract class SslSocketEngine {
         this.initSocketEngines(sslSocketEngineContainer);
     }
 
-    public static SSLEngine get(String alias) {
-        return SslSocketEngine.sslSocketEngineContainer.get(alias);
+    public SSLEngine get(String alias) {
+        return this.sslSocketEngineContainer.get(alias);
     }
+
     /**
      * map key为服务器连接别名
      * 
