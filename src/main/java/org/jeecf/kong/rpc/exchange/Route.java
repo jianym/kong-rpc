@@ -3,8 +3,11 @@ package org.jeecf.kong.rpc.exchange;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
+import javax.net.ssl.SSLEngine;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jeecf.kong.rpc.common.exception.NoServerException;
+import org.jeecf.kong.rpc.common.exception.NotExistSslEngineException;
 import org.jeecf.kong.rpc.common.exception.ResponseExceptionUtils;
 import org.jeecf.kong.rpc.common.exception.SocketException;
 import org.jeecf.kong.rpc.common.exception.TimeoutException;
@@ -107,7 +110,15 @@ public abstract class Route {
             }
             if (!keepAlive) {
                 entity.setShutdown(ServerNode.SHUT_DOWN);
-                NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
+                NettyClient client = null;
+                if (!server.isSsl())
+                    client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
+                else {
+                    SSLEngine engine = SslSocketEngine.get(server.getName());
+                    if(engine == null)
+                        throw new NotExistSslEngineException("not exist SSLEngine....");
+                    client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine);
+                }
                 ServerNode newServer = consumerContainer.new ServerNode();
                 BeanUtils.copyProperties(server, newServer);
                 newServer.setNettyClient(client);
@@ -118,7 +129,15 @@ public abstract class Route {
                 server = consumerContainer.get(req.getClientId());
                 if (server == null) {
                     server = this.getServerNode(reqNode.getAlias(), req.getArgs());
-                    NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
+                    NettyClient client = null;
+                    if (!server.isSsl())
+                        client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
+                    else {
+                        SSLEngine engine = SslSocketEngine.get(server.getName());
+                        if(engine == null)
+                            throw new NotExistSslEngineException("not exist SSLEngine....");
+                        client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine);
+                    }
                     ServerNode shardServer = consumerContainer.new ServerNode();
                     BeanUtils.copyProperties(server, shardServer);
                     shardServer.setNettyClient(client);

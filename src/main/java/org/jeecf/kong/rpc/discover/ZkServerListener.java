@@ -85,8 +85,15 @@ public class ZkServerListener {
                         String data = new String(source);
                         CenterNode zkNode = JsonMapper.getInstance().readValue(data, CenterNode.class);
                         String path = zkNode.getIp() + "-" + zkNode.getPort();
-                        if (isRemoteNode(zkNode,alias)) {
-                            consumerContainer.put(zkNode.getName(), path, buildServerNode(zkNode, krpcClientProperties.getSocket()));
+                        if (isRemoteNode(zkNode, alias)) {
+                            if (krpcClientProperties.getName().equals(alias))
+                                consumerContainer.put(zkNode.getName(), path, buildServerNode(zkNode, krpcClientProperties.getSocket(), krpcClientProperties.isSsl()));
+                            else {
+                                KrpcProperties krpcProperties = getKrpcProperties(alias);
+                                if (krpcProperties != null) {
+                                    consumerContainer.put(zkNode.getName(), path, buildServerNode(zkNode, krpcProperties.getSocket(), krpcProperties.isSsl()));
+                                }
+                            }
                         }
                     }
                 } else if (type.equals(PathChildrenCacheEvent.Type.CHILD_REMOVED)) {
@@ -95,7 +102,7 @@ public class ZkServerListener {
                         String data = new String(source);
                         CenterNode zkNode = JsonMapper.getInstance().readValue(data, CenterNode.class);
                         String path = zkNode.getIp() + "-" + zkNode.getPort();
-                        if (isRemoteNode(zkNode,alias)) {
+                        if (isRemoteNode(zkNode, alias)) {
                             consumerContainer.remove(zkNode.getName(), path);
                         }
                     }
@@ -105,20 +112,32 @@ public class ZkServerListener {
         pathChildrenCache.start();
     }
 
+    public KrpcProperties getKrpcProperties(String alias) {
+        List<KrpcProperties> proList = krpcClientProperties.getAlias();
+        if (CollectionUtils.isNotEmpty(proList)) {
+            for (KrpcProperties properties : proList) {
+                if (properties.getName().equals(alias)) {
+                    return properties;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * 判断服务节点是否为当前客户端zk 通信节点
      * 
      * @param zkNode
      * @return
      */
-    private boolean isRemoteNode(CenterNode zkNode,String alias) {
+    private boolean isRemoteNode(CenterNode zkNode, String alias) {
         if (zkNode.getName().equals(alias)) {
             return true;
-        } 
+        }
         return false;
     }
 
-    private ServerNode buildServerNode(CenterNode zkNode, SocketProperties properties) throws Exception {
+    private ServerNode buildServerNode(CenterNode zkNode, SocketProperties properties, boolean ssl) throws Exception {
         ServerNode node = consumerContainer.new ServerNode();
         node.setState(ServerNode.STATE_INIT);
         node.setIp(zkNode.getIp());
@@ -127,6 +146,8 @@ public class ZkServerListener {
         node.setLow(properties.getLow());
         node.setHeight(properties.getHeight());
         node.setBytes(properties.getBytes());
+        node.setSsl(ssl);
+        node.setName(zkNode.getName());
         if (properties.isConnect()) {
             NettyClient client = NettyClientFactory.getInstance(node);
             client.connection(node.getIp(), node.getPort());

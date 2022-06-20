@@ -1,9 +1,13 @@
 package org.jeecf.kong.rpc.register;
 
+import javax.net.ssl.SSLEngine;
+
 import org.jeecf.common.mapper.JsonMapper;
 import org.jeecf.kong.rpc.center.CenterNode;
 import org.jeecf.kong.rpc.common.DistributeId;
+import org.jeecf.kong.rpc.common.exception.NotExistSslEngineException;
 import org.jeecf.kong.rpc.common.exception.NotFoundAliasException;
+import org.jeecf.kong.rpc.exchange.SslServerSocketEngine;
 import org.jeecf.kong.rpc.protocol.NettyServer;
 import org.jeecf.kong.rpc.register.annotation.KrpcServer;
 import org.jeecf.kong.rpc.register.annotation.KrpcServerAdvice;
@@ -63,15 +67,21 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
             if (StringUtils.isEmpty(name)) {
                 throw new NotFoundAliasException("alias no exits...");
             }
-            
+
             CenterNode zkNode = new CenterNode();
             zkNode.setIp(ip);
             zkNode.setPort(port);
             zkNode.setName(name);
             String path = "/server/" + ip + "-" + port;
-            ZkRegister.register(path, JsonMapper.toJson(zkNode),properties.getZookeeper());
-            
-            NettyServer server = new NettyServer(properties.getSocket());
+            ZkRegister.register(path, JsonMapper.toJson(zkNode), properties.getZookeeper());
+            NettyServer server = null;
+            if (properties.isSsl()) {
+                SSLEngine engine = SslServerSocketEngine.get();
+                if(engine == null)
+                    throw new NotExistSslEngineException("not exist server SSLEngine....");
+                server = new NettyServer(properties.getSocket(), engine);
+            } else
+                server = new NettyServer(properties.getSocket(), null);
             server.run(properties.getPort());
         } catch (Exception e) {
             log.error(e.getMessage(), e);

@@ -22,6 +22,8 @@ public class KrpcServerProperties {
     
     private String name = "";
     
+    private boolean ssl = false;
+    
     private ThreadProperties thread = new ThreadProperties();
 
     private ServerSocketProperties socket = new ServerSocketProperties();

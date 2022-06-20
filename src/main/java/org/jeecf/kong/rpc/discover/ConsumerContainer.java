@@ -114,6 +114,10 @@ public class ConsumerContainer {
 
         private int bytes;
 
+        private boolean ssl;
+
+        private String name;
+
         public int getTimeout() {
             return timeout;
         }
@@ -184,6 +188,22 @@ public class ConsumerContainer {
 
         public void setBytes(int bytes) {
             this.bytes = bytes;
+        }
+
+        public boolean isSsl() {
+            return ssl;
+        }
+
+        public void setSsl(boolean ssl) {
+            this.ssl = ssl;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
         }
 
     }
