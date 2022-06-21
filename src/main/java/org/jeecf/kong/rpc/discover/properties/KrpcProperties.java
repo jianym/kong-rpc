@@ -19,6 +19,10 @@ public class KrpcProperties {
      */
     private String route = "loop";
     /**
+     * 开启 ssl验证
+     */
+    private boolean ssl = false;
+    /**
      * 通信
      */
     private SocketProperties socket = new SocketProperties();
@@ -57,6 +61,14 @@ public class KrpcProperties {
 
     public void setSocket(SocketProperties socket) {
         this.socket = socket;
+    }
+
+    public boolean isSsl() {
+        return ssl;
+    }
+
+    public void setSsl(boolean ssl) {
+        this.ssl = ssl;
     }
 
 }

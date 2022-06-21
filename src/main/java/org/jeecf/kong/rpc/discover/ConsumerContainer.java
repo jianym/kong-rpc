@@ -5,6 +5,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.jeecf.kong.rpc.exchange.BasicRetryManager;
+import org.jeecf.kong.rpc.exchange.RetryManager;
+import org.jeecf.kong.rpc.exchange.SslSocketEngine;
 import org.jeecf.kong.rpc.protocol.NettyClient;
 
 /**
@@ -33,6 +36,26 @@ public class ConsumerContainer {
     private Map<String, LruLinkedMap> aliasListMap = new ConcurrentHashMap<>();
 
     private Map<String, ServerNode> shardMap = new ConcurrentHashMap<>();
+
+    private RetryManager retryManager = new BasicRetryManager();
+
+    private SslSocketEngine sslEngine = null;
+
+    public void setSslEngine(SslSocketEngine engine) {
+        this.sslEngine = engine;
+    }
+
+    public SslSocketEngine getSslEngine() {
+        return this.sslEngine;
+    }
+
+    public void setRetryManager(RetryManager retryManager) {
+        this.retryManager = retryManager;
+    }
+
+    public RetryManager getRetryManager() {
+        return this.retryManager;
+    }
 
     public void putShard(String key, ServerNode value) {
         shardMap.put(key, value);
@@ -114,6 +137,10 @@ public class ConsumerContainer {
 
         private int bytes;
 
+        private boolean ssl;
+
+        private String name;
+
         public int getTimeout() {
             return timeout;
         }
@@ -184,6 +211,22 @@ public class ConsumerContainer {
 
         public void setBytes(int bytes) {
             this.bytes = bytes;
+        }
+
+        public boolean isSsl() {
+            return ssl;
+        }
+
+        public void setSsl(boolean ssl) {
+            this.ssl = ssl;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
         }
 
     }

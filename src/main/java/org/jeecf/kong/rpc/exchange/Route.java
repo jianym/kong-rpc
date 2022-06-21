@@ -5,6 +5,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jeecf.kong.rpc.common.exception.NoServerException;
+import org.jeecf.kong.rpc.common.exception.NotExistSslEngineException;
 import org.jeecf.kong.rpc.common.exception.ResponseExceptionUtils;
 import org.jeecf.kong.rpc.common.exception.SocketException;
 import org.jeecf.kong.rpc.common.exception.TimeoutException;
@@ -41,71 +42,81 @@ public abstract class Route {
         ContextEntity entity = ContextContainer.getInstance().get(req.getClientSpan());
         int retry = reqNode.getRetry();
         int timeout = reqNode.getTimeout();
-        String alias = reqNode.getAlias();
         int i = 0;
         if (retry < 0) {
             retry = 0;
+        }
+        if (timeout <= 0) {
+            timeout = WAIT_MS;
         }
         log.debug("client is send,req={}", req);
         while (i <= retry) {
             if (i > 0) {
                 log.warn("client is retry,num={},req={}", i, req);
             }
-            int size = consumerContainer.size(alias);
-            if (size == 0) {
-                throw new NoServerException("no server can connection...");
-            }
+            ServerNode server = null;
             try {
-                boolean send = false;
-                ServerNode server = getTransferServerNode(alias,req,entity);;
-                send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
+                server = getTransferServerNode(reqNode, req);
+                boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
                 if (!send) {
-                    if (i == retry) {
-                        throw new SocketException("socket connection fail...");
+                    throw new SocketException("socket connection fail...");
+                }
+                long deadline = System.currentTimeMillis() + TimeUnit.MILLISECONDS.toMillis(timeout);
+                LockSupport.parkUntil(deadline);
+                if (entity.getResponse() == null) {
+                    throw new TimeoutException();
+                } else {
+                    Response res = entity.getResponse();
+                    log.debug("client is receive,req={},res={}", req, res);
+                    ResponseExceptionUtils.throwException(res.getCode(), res.getMessage());
+                    Object result = null;
+                    if (StringUtils.isNotEmpty(res.getData())) {
+                        ObjectMapper om = new ObjectMapper();
+                        result = om.readValue(res.getData(), reqNode.getReturnType());
                     }
+                    return result;
+                }
+            } catch (Exception e) {
+                boolean isRetry = consumerContainer.getRetryManager().isRetry(e.getClass());
+                if (isRetry && i < retry) {
+                    log.error(e.getMessage());
                     i++;
                     continue;
                 }
-            } catch (Exception e) {
-                if (i == retry) {
-                    throw e;
+                throw e;
+            } finally {
+                if (!reqNode.isKeepAlive()) {
+                    if (server != null && server.getNettyClient() != null)
+                        server.getNettyClient().close();
                 }
-                i++;
-                continue;
             }
-            if (timeout <= 0) {
-                timeout = WAIT_MS;
-            }
-            long deadline = System.currentTimeMillis() + TimeUnit.MILLISECONDS.toMillis(timeout);
-            LockSupport.parkUntil(deadline);
-            if (entity.getResponse() == null) {
-                if (i == retry) {
-                    throw new TimeoutException();
-                }
-                i++;
-                continue;
-            } else {
-                Response res = entity.getResponse();
-                log.debug("client is receive,req={},res={}", req, res);
-                ResponseExceptionUtils.throwException(res.getCode(), res.getMessage());
-                Object result = null;
-                if (StringUtils.isNotEmpty(res.getData())) {
-                    ObjectMapper om = new ObjectMapper();
-                    result = om.readValue(res.getData(), reqNode.getReturnType());
-                }
-                return result;
-            }
+
         }
         return null;
     }
 
-    protected ServerNode getTransferServerNode(String alias, Request req, ContextEntity entity) {
+    protected ServerNode getTransferServerNode(RequestClientNode reqNode, Request req) {
+        int size = consumerContainer.size(reqNode.getAlias());
+        if (size == 0) {
+            throw new NoServerException("no server can connection...");
+        }
         ServerNode server = null;
         if (req.getTransferMode() == ConstantValue.WHOLE_MODE) {
-            server = this.getServerNode(alias, req.getArgs());
+            boolean keepAlive = reqNode.isKeepAlive();
+            server = this.getServerNode(reqNode.getAlias(), req.getArgs());
             if (req.getArgs().getBytes().length >= server.getBytes() && server.getBytes() > 0) {
-                entity.setShutdown(ServerNode.SHUT_DOWN);
-                NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
+                keepAlive = false;
+            }
+            if (!keepAlive) {
+                NettyClient client = null;
+                if (!server.isSsl())
+                    client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
+                else {
+                    SslSocketEngine engine = ConsumerContainer.getInstance().getSslEngine();
+                    if (engine == null || engine.get(server.getName()) == null)
+                        throw new NotExistSslEngineException("not exist SSLEngine....");
+                    client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine.get(server.getName()));
+                }
                 ServerNode newServer = consumerContainer.new ServerNode();
                 BeanUtils.copyProperties(server, newServer);
                 newServer.setNettyClient(client);
@@ -113,10 +124,19 @@ public abstract class Route {
             }
         } else {
             if (req.getTransferMode() == ConstantValue.SHARD_MODE) {
+                reqNode.setKeepAlive(true);
                 server = consumerContainer.get(req.getClientId());
                 if (server == null) {
-                    server = this.getServerNode(alias, req.getArgs());
-                    NettyClient client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight());
+                    server = this.getServerNode(reqNode.getAlias(), req.getArgs());
+                    NettyClient client = null;
+                    if (!server.isSsl())
+                        client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
+                    else {
+                        SslSocketEngine engine = ConsumerContainer.getInstance().getSslEngine();
+                        if (engine == null || engine.get(server.getName()) == null)
+                            throw new NotExistSslEngineException("not exist SSLEngine....");
+                        client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), engine.get(server.getName()));
+                    }
                     ServerNode shardServer = consumerContainer.new ServerNode();
                     BeanUtils.copyProperties(server, shardServer);
                     shardServer.setNettyClient(client);
@@ -125,7 +145,7 @@ public abstract class Route {
             } else {
                 server = consumerContainer.get(req.getClientId());
                 consumerContainer.remove(req.getClientId());
-                entity.setShutdown(ServerNode.SHUT_DOWN);
+                reqNode.setKeepAlive(false);
             }
         }
         return server;

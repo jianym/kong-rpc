@@ -4,6 +4,8 @@ import java.lang.Thread.State;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
+import javax.net.ssl.SSLEngine;
+
 import org.jeecf.kong.rpc.discover.ContextContainer;
 import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.protocol.serializer.MsgDecoder;
@@ -22,6 +24,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
 /**
@@ -36,15 +39,19 @@ public class NettyClient {
 
     private Channel ch = null;
 
-    public NettyClient(int writeTime,int low,int hegith) {
+    public NettyClient(int writeTime, int low, int hegith, SSLEngine engine) {
         WriteBufferWaterMark writeBufferWaterMark = new WriteBufferWaterMark(low, hegith);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         bootstrap = new Bootstrap();
         bootstrap.group(workerGroup).option(ChannelOption.WRITE_BUFFER_WATER_MARK, writeBufferWaterMark).channel(NioSocketChannel.class);
 
         bootstrap.handler(new ChannelInitializer<NioSocketChannel>() {
+
             @Override
             protected void initChannel(NioSocketChannel ch) throws Exception {
+                if (engine != null) {
+                    ch.pipeline().addFirst("ssl", new SslHandler(engine));
+                }
                 ch.pipeline().addLast(new MsgDecoder());
                 ch.pipeline().addLast(new MsgEncoder());
                 ch.pipeline().addLast(new IdleStateHandler(0, writeTime, 0, TimeUnit.SECONDS));
@@ -85,6 +92,16 @@ public class NettyClient {
             }
         });
         return true;
+    }
+
+    public void close() {
+        if (ch != null) {
+            ch.close();
+            ch = null;
+        }
+        if (bootstrap != null) {
+            bootstrap = null;
+        }
     }
 
 }

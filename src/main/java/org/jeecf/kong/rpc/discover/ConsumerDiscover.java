@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jeecf.kong.rpc.EnableKrpcDiscover;
 import org.jeecf.kong.rpc.discover.annotation.KrpcAutowired;
 import org.jeecf.kong.rpc.discover.annotation.KrpcClient;
 import org.jeecf.kong.rpc.discover.annotation.KrpcClientAdvice;
@@ -36,6 +37,9 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
     @Autowired
     private ClientHandlerLoader clientHandlerLoader;
 
+    @Autowired
+    private KrpcDiscoverHandlerLoader krpcDiscoverHandlerLoader;
+
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         try {
@@ -64,6 +68,8 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
                                 } catch (IllegalArgumentException | IllegalAccessException e) {
                                     e.printStackTrace();
                                 }
+                            } else {
+                                throw new RuntimeException("@KrpcAutowired " + filedClass.getName() + " not exist @KrpcClient or is not interface ");
                             }
                         }
                     }
@@ -71,12 +77,15 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
                 if (clazz.getAnnotation(KrpcClientAdvice.class) != null) {
                     clientHandlerLoader.load(clazz, o);
                 }
+                if (clazz.getAnnotation(EnableKrpcDiscover.class) != null) {
+                    krpcDiscoverHandlerLoader.load(clazz);
+                }
 
             }
 
             zkListener.load();
         } catch (Exception e) {
-            log.error(e.getMessage(),e);
+            log.error(e.getMessage(), e);
             System.exit(0);
         }
     }

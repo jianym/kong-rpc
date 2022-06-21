@@ -1,5 +1,5 @@
 # kong-rpc
-kong-rpc采用单一连接模式，使用kyro序列化，通过读写超时关闭连接。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级,碎片传输等
+kong-rpc 采用单一长连接模式，支持短连接，ssl验证，分片传输。使用kyro序列化，压缩数据下，数据传输快。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级等
 ## 快速开始
 ### 服务端接入
 1.开启服务端 @EnableKrpcRegister
@@ -133,6 +133,28 @@ public interface TestSservice {
     public String hello1(String hello);
 
 }
+
+//可通过继承RetryManager 自定义重试管理器
+public class BasicRetryManager extends RetryManager {
+    
+    //返回需要重试的异常类
+    @Override
+    public Set<Class<? extends Exception>> getRetryExceptions() {
+    }
+
+}
+
+// 引用自定义的重试管理器
+@SpringBootApplication
+@EnableKrpcDiscover(retryManager=BasicRetryManager.class)
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+
 ```
 ## 断路器
 拦截器默认不接入，设置enable为true接入
@@ -266,7 +288,7 @@ public interface TestService {
 
 }
 ```
-## 碎片传输
+## 分片传输
 
 ``` 
 @KrpcClient(value=“/test”)
@@ -274,6 +296,62 @@ public interface TestService {
     // shardData 内参数 clientId：每一个clientId对应一个netty客户端， 同一个组碎片传输中应保证clientId一致。  close:关闭传输，当最后一次传输时，应设置成true， jsonData:参数json字符串。 应保证方法有且只有一个ShardData参数
     @Krpc("/hello")
     public String hello(ShardData shardData);
+
+}
+```
+
+## 短连接
+
+``` 
+@KrpcClient(value=“/test”)
+public interface TestService {
+    // keepAlive 为false 每次传输后关闭传输
+    @Krpc(value="/hello",keepAlive=false)
+    public String hello(String name);
+
+}
+```
+
+## ssl验证
+1.调用方配置ssl
+``` 
+// 继承SslSocketEngine类 编写ssl引擎
+public class ClientSslEngine extends SslSocketEngine{
+    //参数Map key为 调用服务别名，value为ssl引擎，参考netty ssl客户端引擎配置
+    public  void initSocketEngines(Map<String, SSLEngine> map) {
+    }
+
+}
+
+// 引用配置的引擎
+@SpringBootApplication
+@EnableKrpcDiscover(sslEngine=ClientSslEngine.class)
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+```
+2.服务方配置
+``` 
+// 继承SslServerSocketEngine类 编写ssl引擎
+public class ServerSslEngine extends SslServerSocketEngine{
+    //返回值为服务方ssl引擎
+    public  SSLEngine initServerSocketEngines() {
+    }
+
+}
+
+// 引用配置的引擎
+@SpringBootApplication
+@@EnableKrpcRegister(sslEngine=ServerSslEngine.class)
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
 
 }
 ```

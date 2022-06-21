@@ -28,6 +28,10 @@ public class KrpcClientProperties {
      */
     private String route = "loop";
     /**
+     * 开启 ssl验证
+     */
+    private boolean ssl = false;
+    /**
      * 线程
      */
     private ThreadProperties thread = new ThreadProperties();

@@ -29,14 +29,14 @@ public class KrpcClientContainer {
         }
     }
 
-    private Map<Class<?>, RequestClientNode> proxyMap = new ConcurrentHashMap<>();
+    private Map<String, RequestClientNode> proxyMap = new ConcurrentHashMap<>();
 
-    public void put(Class<?> proxyBean, RequestClientNode requestNode) {
-        proxyMap.put(proxyBean, requestNode);
+    public void put(String key, RequestClientNode requestNode) {
+        proxyMap.put(key, requestNode);
     }
 
-    public RequestClientNode get(Class<?> proxyBean) {
-        return proxyMap.get(proxyBean);
+    public RequestClientNode get(String key) {
+        return proxyMap.get(key);
     }
 
     public class RequestClientNode extends RequestNode {
@@ -52,6 +52,8 @@ public class KrpcClientContainer {
         private Class<?> returnType;
 
         private Object fallBack;
+
+        private boolean keepAlive;
 
         private String clientId;
 
@@ -119,6 +121,14 @@ public class KrpcClientContainer {
 
         public void setTransferMode(byte transferMode) {
             this.transferMode = transferMode;
+        }
+
+        public boolean isKeepAlive() {
+            return keepAlive;
+        }
+
+        public void setKeepAlive(boolean keepAlive) {
+            this.keepAlive = keepAlive;
         }
 
     }
