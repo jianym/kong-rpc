@@ -133,6 +133,28 @@ public interface TestSservice {
     public String hello1(String hello);
 
 }
+
+//可通过继承RetryManager 自定义重试管理器
+public class BasicRetryManager extends RetryManager {
+    
+    //返回需要重试的异常类
+    @Override
+    public Set<Class<? extends Exception>> getRetryExceptions() {
+    }
+
+}
+
+// 引用自定义的重试管理器
+@SpringBootApplication
+@EnableKrpcDiscover(retryManager=BasicRetryManager.class)
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+
 ```
 ## 断路器
 拦截器默认不接入，设置enable为true接入
