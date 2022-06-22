@@ -9,6 +9,7 @@ import java.lang.annotation.Target;
 import org.jeecf.kong.rpc.exchange.SslServerSocketEngine;
 import org.jeecf.kong.rpc.register.ProviderRegister;
 import org.springframework.context.annotation.Import;
+import org.springframework.stereotype.Component;
 
 /**
  * 服务注册
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Import;
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Component
 @Import(ProviderRegister.class)
 public @interface EnableKrpcRegister {
     /**

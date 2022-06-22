@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -77,8 +78,9 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
                 if (clazz.getAnnotation(KrpcClientAdvice.class) != null) {
                     clientHandlerLoader.load(clazz, o);
                 }
-                if (clazz.getAnnotation(EnableKrpcDiscover.class) != null) {
-                    krpcDiscoverHandlerLoader.load(clazz);
+                EnableKrpcDiscover discover = AnnotationUtils.findAnnotation(clazz, EnableKrpcDiscover.class);
+                if (discover != null) {
+                    krpcDiscoverHandlerLoader.load(discover);
                 }
 
             }

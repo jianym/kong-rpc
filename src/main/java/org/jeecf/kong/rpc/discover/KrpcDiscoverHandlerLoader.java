@@ -18,10 +18,10 @@ public class KrpcDiscoverHandlerLoader {
 
     private ConsumerContainer container = ConsumerContainer.getInstance();
 
-    public void load(Class<?> clazz) throws InstantiationException, IllegalAccessException {
-        EnableKrpcDiscover discover = clazz.getAnnotation(EnableKrpcDiscover.class);
+    public void load(EnableKrpcDiscover discover) throws InstantiationException, IllegalAccessException {
         RetryManager retryManager = discover.retryManager().newInstance();
-        Class<SslSocketEngine> engineCLass = (Class<SslSocketEngine>) discover.sslEngine();
+        Class<? extends SslSocketEngine> engineCLass = discover.sslEngine();
+        
         if (!Modifier.isAbstract(engineCLass.getModifiers())) {
             SslSocketEngine engine = engineCLass.newInstance();
             engine.init();

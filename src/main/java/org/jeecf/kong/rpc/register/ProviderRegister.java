@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -61,9 +62,9 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
                 if (clazz.getAnnotation(KrpcServerAdvice.class) != null) {
                     serverhandlerRegister.register(clazz, o);
                 }
-                if (clazz.getAnnotation(EnableKrpcRegister.class) != null) {
-                    EnableKrpcRegister discover = clazz.getAnnotation(EnableKrpcRegister.class);
-                    Class<SslServerSocketEngine> engineCLass = (Class<SslServerSocketEngine>) discover.sslEngine();
+                EnableKrpcRegister register = AnnotationUtils.findAnnotation(clazz, EnableKrpcRegister.class);
+                if (register != null) {
+                    Class<? extends SslServerSocketEngine> engineCLass = register.sslEngine();
                     if (!Modifier.isAbstract(engineCLass.getModifiers())) {
                         engine = engineCLass.newInstance();
                         engine.init();

@@ -11,6 +11,7 @@ import org.jeecf.kong.rpc.exchange.BasicRetryManager;
 import org.jeecf.kong.rpc.exchange.RetryManager;
 import org.jeecf.kong.rpc.exchange.SslSocketEngine;
 import org.springframework.context.annotation.Import;
+import org.springframework.stereotype.Component;
 
 /**
  * 服务发现
@@ -21,6 +22,7 @@ import org.springframework.context.annotation.Import;
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Component
 @Import(ConsumerDiscover.class)
 public @interface EnableKrpcDiscover {
 
