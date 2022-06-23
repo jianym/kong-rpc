@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -39,9 +40,16 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
 
     @Autowired
     private KrpcDiscoverHandlerLoader krpcDiscoverHandlerLoader;
+    /**
+     * 防止重入
+     */
+    private volatile boolean isEntry;
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        if(isEntry()) {
+            return;
+        }
         try {
             String[] beans = event.getApplicationContext().getBeanDefinitionNames();
             Map<Class<?>, Object> fieldMap = new HashMap<>();
@@ -77,8 +85,9 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
                 if (clazz.getAnnotation(KrpcClientAdvice.class) != null) {
                     clientHandlerLoader.load(clazz, o);
                 }
-                if (clazz.getAnnotation(EnableKrpcDiscover.class) != null) {
-                    krpcDiscoverHandlerLoader.load(clazz);
+                EnableKrpcDiscover discover = AnnotationUtils.findAnnotation(clazz, EnableKrpcDiscover.class);
+                if (discover != null) {
+                    krpcDiscoverHandlerLoader.load(discover);
                 }
 
             }
@@ -94,6 +103,19 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
     public int getOrder() {
         // TODO Auto-generated method stub
         return 0;
+    }
+    
+    public boolean isEntry() {
+        if (isEntry) {
+            return isEntry;
+        }
+        synchronized (ConsumerDiscover.class) {
+            if (isEntry) {
+                return isEntry;
+            }
+            isEntry = true;
+            return false;
+        }
     }
 
 }
