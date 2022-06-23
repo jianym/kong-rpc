@@ -40,9 +40,16 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
 
     @Autowired
     private KrpcDiscoverHandlerLoader krpcDiscoverHandlerLoader;
+    /**
+     * 防止重入
+     */
+    private volatile boolean isEntry;
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        if(isEntry()) {
+            return;
+        }
         try {
             String[] beans = event.getApplicationContext().getBeanDefinitionNames();
             Map<Class<?>, Object> fieldMap = new HashMap<>();
@@ -96,6 +103,19 @@ public class ConsumerDiscover implements ApplicationListener<ContextRefreshedEve
     public int getOrder() {
         // TODO Auto-generated method stub
         return 0;
+    }
+    
+    public boolean isEntry() {
+        if (isEntry) {
+            return isEntry;
+        }
+        synchronized (ConsumerDiscover.class) {
+            if (isEntry) {
+                return isEntry;
+            }
+            isEntry = true;
+            return false;
+        }
     }
 
 }

@@ -8,6 +8,7 @@ import org.jeecf.kong.rpc.center.CenterNode;
 import org.jeecf.kong.rpc.common.DistributeId;
 import org.jeecf.kong.rpc.common.exception.NotExistSslEngineException;
 import org.jeecf.kong.rpc.common.exception.NotFoundAliasException;
+import org.jeecf.kong.rpc.discover.ConsumerDiscover;
 import org.jeecf.kong.rpc.exchange.SslServerSocketEngine;
 import org.jeecf.kong.rpc.protocol.NettyServer;
 import org.jeecf.kong.rpc.register.annotation.KrpcServer;
@@ -42,6 +43,10 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
 
     @Autowired
     private KrpcServerProperties properties;
+    /**
+     * 防止重入
+     */
+    private volatile boolean isEntry;
 
     @Override
     public int getOrder() {
@@ -50,6 +55,9 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        if (isEntry()) {
+            return;
+        }
         try {
             String[] beans = event.getApplicationContext().getBeanDefinitionNames();
             SslServerSocketEngine engine = null;
@@ -87,7 +95,7 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
             ZkRegister.register(path, JsonMapper.toJson(zkNode), properties.getZookeeper());
             NettyServer server = null;
             if (properties.isSsl()) {
-                if(engine == null || engine.get() == null)
+                if (engine == null || engine.get() == null)
                     throw new NotExistSslEngineException("not exist server SSLEngine....");
                 server = new NettyServer(properties.getSocket(), engine.get());
             } else
@@ -98,6 +106,19 @@ public class ProviderRegister implements ApplicationListener<ContextRefreshedEve
             System.exit(0);
         }
 
+    }
+
+    public boolean isEntry() {
+        if (isEntry) {
+            return isEntry;
+        }
+        synchronized (ConsumerDiscover.class) {
+            if (isEntry) {
+                return isEntry;
+            }
+            isEntry = true;
+            return false;
+        }
     }
 
 }
