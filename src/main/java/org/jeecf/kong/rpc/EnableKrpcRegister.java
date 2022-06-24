@@ -26,7 +26,7 @@ public @interface EnableKrpcRegister {
     /**
      * ssl引擎
      * 
-     * @return
+     * @return ssl引擎服务方实现类
      */
     public Class<? extends SslServerSocketEngine> sslEngine() default SslServerSocketEngine.class;
 

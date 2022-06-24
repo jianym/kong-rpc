@@ -38,7 +38,7 @@ public class ThreadContainer {
      * 获取参数
      * 
      * @param key
-     * @return
+     * @return 当前线程副本值
      */
     public String get(String key) {
         Map<String, String> localMap = local.get();

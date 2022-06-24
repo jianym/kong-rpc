@@ -156,7 +156,7 @@ public abstract class Route {
      * 
      * @param alias
      * @param data
-     * @return
+     * @return 服务节点信息
      */
     protected abstract ServerNode getServerNode(String alias, String data);
 
