@@ -22,7 +22,7 @@ public @interface KrpcClientAdvice {
     /**
      * 别名
      * 
-     * @return
+     * @return 别名
      */
     public String[] value() default {};
 

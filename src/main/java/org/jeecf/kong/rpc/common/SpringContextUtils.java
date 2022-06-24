@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * @author jianyiming
  *
  */
-@Component
+@Component("springKrpcContextUtils")
 public class SpringContextUtils implements ApplicationContextAware {
 
     private static ApplicationContext APPLICATION_CONTEXT;
@@ -26,7 +26,7 @@ public class SpringContextUtils implements ApplicationContextAware {
     /**
      * 获取applicationContext
      * 
-     * @return
+     * @return bean容器上下文
      */
     public static ApplicationContext getApplicationContext() {
         return APPLICATION_CONTEXT;
@@ -36,7 +36,7 @@ public class SpringContextUtils implements ApplicationContextAware {
      * 通过name获取 Bean.
      * 
      * @param name
-     * @return
+     * @return bean实体
      */
     public static Object getBean(String name) {
         return getApplicationContext().getBean(name);
@@ -46,7 +46,7 @@ public class SpringContextUtils implements ApplicationContextAware {
      * 通过class获取Bean.
      * 
      * @param clazz
-     * @return
+     * @return bean实体
      */
     public static <T> T getBean(Class<T> clazz) {
         return getApplicationContext().getBean(clazz);
@@ -57,7 +57,7 @@ public class SpringContextUtils implements ApplicationContextAware {
      * 
      * @param name
      * @param clazz
-     * @return
+     * @return bean实体
      */
     public static <T> T getBean(String name, Class<T> clazz) {
         return getApplicationContext().getBean(name, clazz);

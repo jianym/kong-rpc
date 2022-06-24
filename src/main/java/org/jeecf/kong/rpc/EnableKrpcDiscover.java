@@ -29,14 +29,14 @@ public @interface EnableKrpcDiscover {
     /**
      * 重试管理器
      * 
-     * @return
+     * @return 重试管理器实现类
      */
     public Class<? extends RetryManager> retryManager() default BasicRetryManager.class;
 
     /**
      * ssl引擎
      * 
-     * @return
+     * @return ssl调用方实现类
      */
     public Class<? extends SslSocketEngine> sslEngine() default SslSocketEngine.class;
 

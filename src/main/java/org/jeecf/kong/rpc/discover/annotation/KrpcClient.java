@@ -19,41 +19,41 @@ public @interface KrpcClient {
     /**
      * 基础路径
      * 
-     * @return
+     * @return 访问服务端路径定位符的基础路径
      */
     public String value() default "";
 
     /**
      * 别名
      * 
-     * @return
+     * @return 别名，区分多个服务
      */
     public String alias() default "";
 
     /**
      * 版本
      * 
-     * @return
+     * @return 版本号与服务端对齐
      */
     public int version() default 0;
 
     /**
      * 重试
      * 
-     * @return
+     * @return 重试次数
      */
     public int retry() default 2;
 
     /**
-     * 超时时间
+     * 超时时间 
      * 
-     * @return
+     * @return 响应超时时间
      */
     public int timeout() default 3000;
     /**
      * 回调路径 完全限定类名
      * 
-     * @return
+     * @return 降级服务的完全限定类名
      */
     public String fallback() default "";
 
