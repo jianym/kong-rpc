@@ -26,8 +26,8 @@ public class ZkClient {
         Builder builder = CuratorFrameworkFactory.builder();
         builder.connectString(zkProperties.getAddress()).sessionTimeoutMs(zkProperties.getSessionTimeout()).connectionTimeoutMs(zkProperties.getConnectTimeout())
                 .namespace(zkProperties.getNamespace() + "/kong-rpc").retryPolicy(retryNTimes);
-        if (!StringUtils.isEmpty(zkProperties.getAuth()))
-            builder.authorization("digest", zkProperties.getAuth().getBytes());
+        if (!StringUtils.isEmpty(zkProperties.getAuth()) && !StringUtils.isEmpty(zkProperties.getScheme()))
+            builder.authorization(zkProperties.getScheme(), zkProperties.getAuth().getBytes());
         return builder.build();
     }
 

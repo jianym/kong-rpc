@@ -19,6 +19,10 @@ public class ZkProperties {
      */
     private String namespace;
     /**
+     * 验证scheme
+     */
+    private String scheme;
+    /**
      * 验证
      */
     private String auth;
