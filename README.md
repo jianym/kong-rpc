@@ -1,3 +1,7 @@
+#徽章
+[![license Status](https://img.shields.io/badge/License-Apache%202.0-blue.svg?branch=v2.0)](http://www.apache.org/licenses/LICENSE-2.0.txt)
+
+
 # kong-rpc
 kong-rpc 采用单一长连接模式，支持短连接，ssl验证，分片传输。使用kyro序列化，压缩数据下，数据传输快。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级等
 ## 快速开始
