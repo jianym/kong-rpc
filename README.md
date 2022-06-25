@@ -5,6 +5,15 @@
 # kong-rpc
 kong-rpc 采用单一长连接模式，支持短连接，ssl验证，分片传输。使用kyro序列化，压缩数据下，数据传输快。kong-rpc支持负载均衡，断路器，多服务端，重试，多版本控制，同步异步调用,服务降级等
 ## 快速开始
+### 依赖包
+``` 
+<!-- https://mvnrepository.com/artifact/org.jeecf/kong-rpc -->
+<dependency>
+    <groupId>org.jeecf</groupId>
+    <artifactId>kong-rpc</artifactId>
+    <version>1.0-RELEASE</version>
+</dependency>
+``` 
 ### 服务端接入
 1.开启服务端 @EnableKrpcRegister
 
