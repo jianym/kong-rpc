@@ -3,8 +3,6 @@ package org.jeecf.kong.rpc.protocol;
 import org.jeecf.kong.rpc.common.SpringContextUtils;
 import org.jeecf.kong.rpc.exchange.ServerDispather;
 import org.jeecf.kong.rpc.protocol.serializer.MsgProtocol;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
-import org.jeecf.kong.rpc.protocol.serializer.Serializer;
 import org.jeecf.kong.rpc.register.KrpcServerProperties;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -26,8 +24,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             return;
         }
         MsgProtocol protocol = ((MsgProtocol) msg);
-        Request res = (Request) Serializer.deserialize(protocol.getSerializer(), protocol.getContent());
-        ServerDispather.getInstance(properties.getThread()).dispath(res, ctx, protocol.getSerializer());
+        ServerDispather.getInstance(properties.getThread()).dispath(protocol.getContent(), ctx, protocol.getSerializer());
     }
 
 }

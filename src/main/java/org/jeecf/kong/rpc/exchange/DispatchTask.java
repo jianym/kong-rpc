@@ -13,7 +13,7 @@ import org.jeecf.kong.rpc.common.exception.ResourceLocationNotMatchException;
 import org.jeecf.kong.rpc.common.exception.ResponseExceptionUtils;
 import org.jeecf.kong.rpc.protocol.serializer.ConstantValue;
 import org.jeecf.kong.rpc.protocol.serializer.MsgProtocol;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
+import org.jeecf.kong.rpc.protocol.serializer.RequestSerializerHelper;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 import org.jeecf.kong.rpc.protocol.serializer.Serializer;
 import org.jeecf.kong.rpc.register.AfterHandlerContext;
@@ -26,6 +26,7 @@ import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
 import org.springframework.beans.BeanUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -41,7 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DispatchTask implements Runnable {
 
-    private Request request = null;
+    private RequestSerializerHelper requestHelper = null;
 
     private byte serializer = 0;
 
@@ -61,8 +62,8 @@ public class DispatchTask implements Runnable {
 
     private ExceptionHandlerContext exConntext = ExceptionHandlerContext.getInstance();
 
-    public DispatchTask(Request request, ChannelHandlerContext ctx, byte serializer) {
-        this.request = request;
+    public DispatchTask(byte[] request, ChannelHandlerContext ctx, byte serializer) throws InvalidProtocolBufferException {
+        requestHelper = new RequestSerializerHelper(request, serializer);
         this.ctx = ctx;
         this.serializer = serializer;
     }
@@ -70,34 +71,31 @@ public class DispatchTask implements Runnable {
     @Override
     public void run() {
         String span = DistributeId.getId();
-        String path = request.getPath();
-        int version = request.getVersion();
-        MsgProtocol msg = new MsgProtocol();
         Response response = new Response();
-        response.setClientSpan(request.getClientSpan());
+        response.setClientSpan(requestHelper.getClientSpan());
         response.setServerSpan(span);
         ThreadContainer threadContainer = SpringContextUtils.getBean(ThreadContainer.class);
-        threadContainer.set(ThreadContainer.ID, request.getId());
+        threadContainer.set(ThreadContainer.ID, requestHelper.getId());
         threadContainer.set(ThreadContainer.SPAN, span);
         Object result = null;
         Object[] arrayO = null;
         try {
-            log.debug("server is receive,req={}", request);
+            log.debug("server is receive,req={}", requestHelper.get());
             RequestServerNode node = getRequestServerNode();
             if (node == null) {
-                throw new ResourceLocationNotMatchException("resource not found " + version + "_" + path);
+                throw new ResourceLocationNotMatchException("resource not found " + requestHelper.getVersion() + "_" + requestHelper.getPath());
             }
             Method m = node.getMethod();
             Parameter[] parameters = m.getParameters();
             if (parameters != null && parameters.length > 0) {
-                arrayO = getArgs(parameters, request.getArgs());
+                arrayO = getArgs(parameters, requestHelper.getArgs());
             }
             try {
-                beforeConntext.exec(arrayO, node, request, response);
-                result = aroundConntext.exec(arrayO, node, request, response);
-                afterConntext.exec(arrayO, result, node, request, response);
+                beforeConntext.exec(arrayO, node, response);
+                result = aroundConntext.exec(arrayO, node, response);
+                afterConntext.exec(arrayO, result, node, response);
             } catch (Throwable e) {
-                ExceptionNode exNode = exConntext.exec(arrayO, result, e, node, request, response);
+                ExceptionNode exNode = exConntext.exec(arrayO, result, e, node, response);
                 if (exNode == null) {
                     throw e;
                 }
@@ -112,6 +110,7 @@ public class DispatchTask implements Runnable {
             response.setCode(code);
             response.setMessage(e.getMessage());
         } finally {
+            MsgProtocol msg = new MsgProtocol();
             threadContainer.remove();
             response.setSs(System.currentTimeMillis());
             byte[] content = Serializer.getSerializer(Serializer.getSerializer(serializer), response);
@@ -119,52 +118,56 @@ public class DispatchTask implements Runnable {
             msg.setContentLength(content.length);
             msg.setContent(content);
             int i = 0;
-            log.debug("server is send,req={},res={}", request, response);
+            log.debug("server is send,req={},res={}", requestHelper.get(), response);
             while (i < RETRY) {
-                if (ctx.channel().isActive() && ctx.channel().isWritable()) {
-                    ChannelFuture serverFuture = ctx.channel().writeAndFlush(msg);
-                    serverFuture.addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            if (!future.isSuccess()) {
-                                log.error("server send fail,req={},res={}", request, response);
-                            }
-                        }
-                    });
-                    return;
-                }
                 try {
-                    log.warn("server is retry,num={},req={},res={}", i, request, response);
+                    if (ctx.channel().isActive() && ctx.channel().isWritable()) {
+                        ChannelFuture serverFuture = ctx.channel().writeAndFlush(msg);
+                        serverFuture.addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture future) throws Exception {
+                                if (!future.isSuccess()) {
+                                    log.error("server send fail,req={},res={}", requestHelper.get(), response);
+                                }
+                            }
+                        });
+                        return;
+                    }
+                    log.warn("server is retry,num={},req={},res={}", i, requestHelper.get(), response);
                     Thread.sleep(SLEEP_MS);
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                     log.warn(e.getMessage(), e);
                 }
                 i++;
             }
-            log.error("server send fail,req={},res={}", request, response);
+            log.error("server send fail,req={},res={}", requestHelper.get(), response);
 
         }
     }
 
     public RequestServerNode getRequestServerNode() throws InstantiationException, IllegalAccessException {
-        String path = request.getPath();
-        int version = request.getVersion();
-        byte transferMode = request.getTransferMode();
+        String path = requestHelper.getPath();
+        int version = requestHelper.getVersion();
+        byte transferMode = requestHelper.getTransferMode();
         RequestServerNode node = null;
         if (transferMode == ConstantValue.WHOLE_MODE)
             node = providerContainer.get(version + "_" + path);
         else {
-            node = providerContainer.get(version + "_" + path + "_" + request.getClientId(),ConstantValue.SHARD_MODE);
+            node = providerContainer.get(version + "_" + path + "_" + requestHelper.getClientId(), ConstantValue.SHARD_MODE);
             if (node == null) {
                 RequestServerNode tmpNode = providerContainer.get(version + "_" + path);
                 node = providerContainer.new RequestServerNode();
                 BeanUtils.copyProperties(tmpNode, node);
                 node.setInstance(node.getInstance().getClass().newInstance());
-                providerContainer.add(version + "_" + path + "_" + request.getClientId(), node, ConstantValue.SHARD_MODE);
+                providerContainer.add(version + "_" + path + "_" + requestHelper.getClientId(), node, ConstantValue.SHARD_MODE);
             }
             if (transferMode == ConstantValue.SHARD_MODE_CLOSE) {
-                providerContainer.removeShard(version + "_" + path + "_" + request.getClientId());
+                providerContainer.removeShard(version + "_" + path + "_" + requestHelper.getClientId());
             }
+        }
+        if (node != null) {
+            node.setTraceId(requestHelper.getId());
+            node.setClientSpan(requestHelper.getClientSpan());
         }
         return node;
     }

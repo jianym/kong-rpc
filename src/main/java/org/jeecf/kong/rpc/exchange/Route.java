@@ -16,8 +16,8 @@ import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
 import org.jeecf.kong.rpc.protocol.NettyClient;
 import org.jeecf.kong.rpc.protocol.serializer.ConstantValue;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
-import org.jeecf.kong.rpc.protocol.serializer.Response;
+import org.jeecf.kong.rpc.protocol.serializer.MsgProtocol;
+import org.jeecf.kong.rpc.protocol.serializer.ResponseSerializerHelper;
 import org.jeecf.kong.rpc.protocol.serializer.Serializer;
 import org.springframework.beans.BeanUtils;
 
@@ -38,10 +38,11 @@ public abstract class Route {
 
     protected ConsumerContainer consumerContainer = ConsumerContainer.getInstance();
 
-    public Object send(RequestClientNode reqNode, Request req) throws Exception {
-        ContextEntity entity = ContextContainer.getInstance().get(req.getClientSpan());
+    public Object send(RequestClientNode reqNode) throws Exception {
+        ContextEntity entity = ContextContainer.getInstance().get(reqNode.getClientSpan());
         int retry = reqNode.getRetry();
         int timeout = reqNode.getTimeout();
+        Serializer serializer = Serializer.KYRO;
         int i = 0;
         if (retry < 0) {
             retry = 0;
@@ -49,25 +50,33 @@ public abstract class Route {
         if (timeout <= 0) {
             timeout = WAIT_MS;
         }
-        log.debug("client is send,req={}", req);
+        log.debug("client is send,req={}", reqNode);
+        ServerNode server =  getTransferServerNode(reqNode);;
+        if(server.getSerializer().equals("protobuf")) {
+            serializer = Serializer.PROTOBUF;
+        }
+        MsgProtocol msg = new MsgProtocol();
+        byte[] content = Serializer.getSerializer(serializer, reqNode);
+        msg.setSerializer(Serializer.getSerializer(serializer));
+        msg.setContentLength(content.length);
+        msg.setContent(content);
+        
         while (i <= retry) {
             if (i > 0) {
-                log.warn("client is retry,num={},req={}", i, req);
+                log.warn("client is retry,num={},req={}", i, reqNode);
             }
-            ServerNode server = null;
             try {
-                server = getTransferServerNode(reqNode, req);
-                boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
+                boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), msg,reqNode.getClientSpan());
                 if (!send) {
                     throw new SocketException("socket connection fail...");
                 }
                 long deadline = System.currentTimeMillis() + TimeUnit.MILLISECONDS.toMillis(timeout);
                 LockSupport.parkUntil(deadline);
-                if (entity.getResponse() == null) {
+                if (entity.getResponseHelper() == null) {
                     throw new TimeoutException();
                 } else {
-                    Response res = entity.getResponse();
-                    log.debug("client is receive,req={},res={}", req, res);
+                    ResponseSerializerHelper res = entity.getResponseHelper();
+                    log.debug("client is receive,req={},res={}", reqNode, res.get());
                     ResponseExceptionUtils.throwException(res.getCode(), res.getMessage());
                     Object result = null;
                     if (StringUtils.isNotEmpty(res.getData())) {
@@ -81,6 +90,7 @@ public abstract class Route {
                 if (isRetry && i < retry) {
                     log.error(e.getMessage());
                     i++;
+                    server = getTransferServerNode(reqNode);
                     continue;
                 }
                 throw e;
@@ -95,16 +105,16 @@ public abstract class Route {
         return null;
     }
 
-    protected ServerNode getTransferServerNode(RequestClientNode reqNode, Request req) {
+    protected ServerNode getTransferServerNode(RequestClientNode reqNode) {
         int size = consumerContainer.size(reqNode.getAlias());
         if (size == 0) {
             throw new NoServerException("no server can connection...");
         }
         ServerNode server = null;
-        if (req.getTransferMode() == ConstantValue.WHOLE_MODE) {
+        if (reqNode.getTransferMode() == ConstantValue.WHOLE_MODE) {
             boolean keepAlive = reqNode.isKeepAlive();
-            server = this.getServerNode(reqNode.getAlias(), req.getArgs());
-            if (req.getArgs().getBytes().length >= server.getBytes() && server.getBytes() > 0) {
+            server = this.getServerNode(reqNode.getAlias(), reqNode.getArgs());
+            if (reqNode.getArgs().getBytes().length >= server.getBytes() && server.getBytes() > 0) {
                 keepAlive = false;
             }
             if (!keepAlive) {
@@ -123,11 +133,11 @@ public abstract class Route {
                 server = newServer;
             }
         } else {
-            if (req.getTransferMode() == ConstantValue.SHARD_MODE) {
+            if (reqNode.getTransferMode() == ConstantValue.SHARD_MODE) {
                 reqNode.setKeepAlive(true);
-                server = consumerContainer.get(req.getClientId());
+                server = consumerContainer.get(reqNode.getClientId());
                 if (server == null) {
-                    server = this.getServerNode(reqNode.getAlias(), req.getArgs());
+                    server = this.getServerNode(reqNode.getAlias(), reqNode.getArgs());
                     NettyClient client = null;
                     if (!server.isSsl())
                         client = new NettyClient(server.getTimeout(), server.getLow(), server.getHeight(), null);
@@ -140,11 +150,11 @@ public abstract class Route {
                     ServerNode shardServer = consumerContainer.new ServerNode();
                     BeanUtils.copyProperties(server, shardServer);
                     shardServer.setNettyClient(client);
-                    consumerContainer.putShard(req.getClientId(), shardServer);
+                    consumerContainer.putShard(reqNode.getClientId(), shardServer);
                 }
             } else {
-                server = consumerContainer.get(req.getClientId());
-                consumerContainer.remove(req.getClientId());
+                server = consumerContainer.get(reqNode.getClientId());
+                consumerContainer.remove(reqNode.getClientId());
                 reqNode.setKeepAlive(false);
             }
         }
@@ -156,7 +166,7 @@ public abstract class Route {
      * 
      * @param alias
      * @param data
-     * @return 服务节点信息
+     * @return 服务节点
      */
     protected abstract ServerNode getServerNode(String alias, String data);
 

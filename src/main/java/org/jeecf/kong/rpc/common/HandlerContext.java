@@ -2,7 +2,6 @@ package org.jeecf.kong.rpc.common;
 
 import java.lang.reflect.Method;
 
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 
 /**
@@ -71,16 +70,16 @@ public class HandlerContext {
          */
         protected Integer version = 0;
 
-        public JoinPoint(RequestNode node, Request req, Response res) {
+        public JoinPoint(RequestNode node,  Response res) {
             if (node != null) {
                 this.targetMethod = node.getMethod();
                 this.target = node.getInstance();
             }
-            this.path = req.getPath();
-            this.clientSpan = req.getClientSpan();
-            this.traceId = req.getId();
-            this.version = req.getVersion();
-            this.cs = req.getTime();
+            this.path = node.getPath();
+            this.clientSpan = node.getClientSpan();
+            this.traceId = node.getTraceId();
+            this.version = node.getVersion();
+            this.cs = node.getTime();
             if (res != null) {
                 this.ss = res.getSs();
                 this.sr = res.getSr();

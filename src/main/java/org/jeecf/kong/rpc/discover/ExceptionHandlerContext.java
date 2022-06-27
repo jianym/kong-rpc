@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 
 /**
@@ -52,16 +51,16 @@ public class ExceptionHandlerContext extends ClientHandlerContext {
         }
     }
 
-    public ExceptionNode exec(Throwable ex, RequestClientNode reqNode, Request req, Response res) throws Throwable {
+    public ExceptionNode exec(Throwable ex, RequestClientNode reqNode, Response res) throws Throwable {
         if (tMap == null || tMap.size() == 0) {
             return null;
         }
-        ExceptionJoinPoint joinPoint = new ExceptionJoinPoint(ex, reqNode, req, res);
+        ExceptionJoinPoint joinPoint = new ExceptionJoinPoint(ex, reqNode, res);
         for (Map.Entry<Class<? extends Throwable>, ExceptionNode> entry : tMap.entrySet()) {
             Class<? extends Throwable> key = entry.getKey();
             if (key == ex.getClass() || key.isAssignableFrom(ex.getClass())) {
                 ExceptionNode node = entry.getValue();
-                boolean isTarget = isTarget(reqNode.getAlias(), node.getAlias(), req.getPath(), node.getBasePath());
+                boolean isTarget = isTarget(reqNode.getAlias(), node.getAlias(), reqNode.getPath(), node.getBasePath());
                 if (isTarget) {
                     Method m = node.getM();
                     try {
@@ -83,8 +82,8 @@ public class ExceptionHandlerContext extends ClientHandlerContext {
 
         private Throwable ex;
 
-        public ExceptionJoinPoint(Throwable ex, RequestClientNode reqNode, Request req, Response res) {
-            super(reqNode, req, res);
+        public ExceptionJoinPoint(Throwable ex, RequestClientNode reqNode, Response res) {
+            super(reqNode, res);
             this.ex = ex;
         }
 

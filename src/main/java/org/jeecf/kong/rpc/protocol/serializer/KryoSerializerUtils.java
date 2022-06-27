@@ -2,12 +2,11 @@ package org.jeecf.kong.rpc.protocol.serializer;
 
 import java.io.ByteArrayOutputStream;
 
+import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
+
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
 
 /**
  * kryo 序列化工具
@@ -47,13 +46,37 @@ public class KryoSerializerUtils {
         kryo.register(Response.class);
         return kryo;
     }
+    
 
-    public static byte[] serialize(Object msg) {
+    public static byte[] serialize(RequestClientNode reqNode) {
+        Request req  = new Request();
+        req.setId(reqNode.getTraceId());
+        req.setArgs(reqNode.getArgs());
+        req.setClientId(reqNode.getClientId());
+        req.setClientSpan(reqNode.getClientSpan());
+        req.setPath(reqNode.getPath());
+        req.setTime(reqNode.getTime());
+        req.setTransferMode(reqNode.getTransferMode());
+        req.setVersion(reqNode.getVersion());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         Output output = new Output(bos);
         try {
             Kryo kryo = kryoSerializerUtils.getKryo();
-            kryo.writeClassAndObject(output, msg);
+            kryo.writeClassAndObject(output, req);
+            output.flush();
+            return bos.toByteArray();
+        } finally {
+            output.close();
+            output.close();
+        }
+    }
+    
+    public static byte[] serialize(Response res) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        Output output = new Output(bos);
+        try {
+            Kryo kryo = kryoSerializerUtils.getKryo();
+            kryo.writeClassAndObject(output, res);
             output.flush();
             return bos.toByteArray();
         } finally {
@@ -62,14 +85,6 @@ public class KryoSerializerUtils {
         }
     }
 
-    public static Object deserialize(ByteBuf out) {
-        if (out == null) {
-            return null;
-        }
-        Input input = new Input(new ByteBufInputStream(out));
-        Kryo kryo = kryoSerializerUtils.getKryo();
-        return kryo.readClassAndObject(input);
-    }
 
     public static Object deserialize(byte[] b) {
         if (b == null) {

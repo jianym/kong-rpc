@@ -7,8 +7,7 @@ import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
-import org.jeecf.kong.rpc.protocol.serializer.Response;
+import org.jeecf.kong.rpc.protocol.serializer.ResponseSerializerHelper;
 
 /**
  * 客户端后置拦截上下文
@@ -39,11 +38,11 @@ public class AfterHandlerContext extends ClientHandlerContext {
         nodes.add(node);
     }
 
-    public void exec(Object result, RequestClientNode reqNode, Request req, Response res) throws Exception {
+    public void exec(Object result, RequestClientNode reqNode, ResponseSerializerHelper res) throws Exception {
         if (CollectionUtils.isNotEmpty(nodes)) {
-            AfterJoinPoint joinPoint = new AfterJoinPoint(result, reqNode, req, res);
+            AfterJoinPoint joinPoint = new AfterJoinPoint(result, reqNode, res);
             for (AfterNode node : nodes) {
-                boolean isTarget = isTarget(reqNode.getAlias(), node.getAlias(), req.getPath(), node.getBasePath());
+                boolean isTarget = isTarget(reqNode.getAlias(), node.getAlias(), reqNode.getPath(), node.getBasePath());
                 if (isTarget) {
                     Method m = node.getM();
                     try {
@@ -62,10 +61,15 @@ public class AfterHandlerContext extends ClientHandlerContext {
 
         private Object result;
 
-        public AfterJoinPoint(Object result, RequestClientNode node, Request req, Response res) {
-            super(node, req, res);
+        public AfterJoinPoint(Object result, RequestClientNode node, ResponseSerializerHelper res) {
+            super(node, null);
             this.result = result;
             this.cr = System.currentTimeMillis();
+            if (res != null) {
+                this.ss = res.getSs();
+                this.sr = res.getSr();
+                this.serverSpan = res.getServerSpan();
+            }
         }
 
         public Object getResult() {

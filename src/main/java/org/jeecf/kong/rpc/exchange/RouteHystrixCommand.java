@@ -19,7 +19,6 @@ import org.jeecf.kong.rpc.discover.ExceptionHandlerContext;
 import org.jeecf.kong.rpc.discover.ExceptionHandlerContext.ExceptionNode;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
 import org.jeecf.kong.rpc.discover.properties.KrpcClientProperties;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 
 import com.netflix.hystrix.HystrixCommand;
 
@@ -39,17 +38,17 @@ public class RouteHystrixCommand<T> extends HystrixCommand<T> {
     private static AroundHandlerContext aroundHandler = AroundHandlerContext.getInstance();
 
     private static ExceptionHandlerContext exHandler = ExceptionHandlerContext.getInstance();
-    
+
     private static KrpcClientProperties properties = SpringContextUtils.getBean(KrpcClientProperties.class);
 
     private RequestClientNode node;
 
-    private Request req;
+//    private Request req;
 
-    public RouteHystrixCommand(RequestClientNode node, Request req, Setter setter) {
+    public RouteHystrixCommand(RequestClientNode node, Setter setter) {
         super(setter);
         this.node = node;
-        this.req = req;
+//        this.req = req;
     }
 
     @SuppressWarnings("unchecked")
@@ -70,14 +69,14 @@ public class RouteHystrixCommand<T> extends HystrixCommand<T> {
             if (StringUtils.isEmpty(node.getAlias())) {
                 node.setAlias(properties.getName());
             }
-            req.setClientSpan(span);
-            req.setId(threadContainer.get(ThreadContainer.ID));
-            req.setTime(System.currentTimeMillis());
+            this.node.setClientSpan(span);
+            this.node.setTraceId(threadContainer.get(ThreadContainer.ID));
+            this.node.setTime(System.currentTimeMillis());
             ContextEntity entity = buildContext();
-            Route route = RouteFactory.getRoute(node.getAlias(), req.getArgs());
-            beforeHandler.exec(node, req);
-            T result = (T) aroundHandler.exec(node, route, req);
-            afterHandlerContext.exec(result, node, req, entity.getResponse());
+            Route route = RouteFactory.getRoute(node.getAlias(), this.node.getArgs());
+            beforeHandler.exec(node);
+            T result = (T) aroundHandler.exec(node, route);
+            afterHandlerContext.exec(result, node, entity.getResponseHelper());
             return result;
         } finally {
             if (!isBoot) {
@@ -97,21 +96,21 @@ public class RouteHystrixCommand<T> extends HystrixCommand<T> {
             if (fallback != null) {
                 Method m = node.getMethod();
                 Object[] args = null;
-                String jsonData = req.getArgs();
+                String jsonData = this.node.getArgs();
                 if (StringUtils.isNotEmpty(jsonData)) {
                     Map<String, Object> mapArgs = JsonMapper.getInstance().readValue(jsonData, Map.class);
                     Parameter[] ps = m.getParameters();
                     if (ps != null) {
                         args = new Object[ps.length];
                         for (int i = 0; i < ps.length; i++) {
-                          Object value =  mapArgs.get(ps[i].getName());
-                          args[i] = value;
+                            Object value = mapArgs.get(ps[i].getName());
+                            args[i] = value;
                         }
                     }
                 }
-               return (T) m.invoke(fallback, args);
+                return (T) m.invoke(fallback, args);
             }
-            exNode = exHandler.exec(e, node, req, null);
+            exNode = exHandler.exec(e, node, null);
             if (exNode == null) {
                 throw new KrpcClientException(e);
             }
@@ -126,7 +125,7 @@ public class RouteHystrixCommand<T> extends HystrixCommand<T> {
     private ContextEntity buildContext() {
         ContextEntity entity = new ContextEntity();
         entity.setThread(Thread.currentThread());
-        ContextContainer.getInstance().put(req.getClientSpan(), entity);
+        ContextContainer.getInstance().put(this.node.getClientSpan(), entity);
         return entity;
     }
 

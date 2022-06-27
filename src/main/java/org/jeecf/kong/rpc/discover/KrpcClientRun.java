@@ -9,7 +9,6 @@ import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
 import org.jeecf.kong.rpc.discover.properties.KrpcClientProperties;
 import org.jeecf.kong.rpc.discover.properties.KrpcClientProperties.CircuitBreakerProperties;
 import org.jeecf.kong.rpc.exchange.RouteHystrixCommand;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 
 import com.netflix.hystrix.HystrixCommand.Setter;
 import com.netflix.hystrix.HystrixCommandGroupKey;
@@ -28,21 +27,19 @@ public class KrpcClientRun {
 
     private static KrpcClientProperties properties = SpringContextUtils.getBean(KrpcClientProperties.class);
 
-    public static <T> Future<T> run(String args, RequestClientNode node) throws Throwable {
+    public static <T> Future<T> run( RequestClientNode node) throws Throwable {
         if (!ResourceLocationUtils.check(node.getPath())) {
             throw new ResourceLocationFormatException("path format is error " + node.getPath());
         }
-        Request req = buildRequest(args, node);
-        RouteHystrixCommand<T> command = new RouteHystrixCommand<>(node, req, getSetter(node));
+        RouteHystrixCommand<T> command = new RouteHystrixCommand<>(node, getSetter(node));
         return command.queue();
     }
 
-    public static <T> T runSync(String args, RequestClientNode node) throws Throwable {
+    public static <T> T runSync(RequestClientNode node) throws Throwable {
         if (!ResourceLocationUtils.check(node.getPath())) {
             throw new ResourceLocationFormatException("path format is error " + node.getPath());
         }
-        Request req = buildRequest(args, node);
-        RouteHystrixCommand<T> command = new RouteHystrixCommand<>(node, req, getSetter(node));
+        RouteHystrixCommand<T> command = new RouteHystrixCommand<>(node, getSetter(node));
         return command.execute();
     }
 
@@ -59,14 +56,14 @@ public class KrpcClientRun {
                         .withMaximumSize(properties.getThread().getCore()));
     }
 
-    private static Request buildRequest(String args, RequestClientNode clientNode) {
-        Request req = new Request();
-        req.setArgs(args);
-        req.setPath(clientNode.getPath());
-        req.setVersion(clientNode.getVersion());
-        req.setClientId(clientNode.getClientId());
-        req.setTransferMode(clientNode.getTransferMode());
-        return req;
-    }
+//    private static Request buildRequest(String args, RequestClientNode clientNode) {
+//        Request req = new Request();
+//        req.setArgs(args);
+//        req.setPath(clientNode.getPath());
+//        req.setVersion(clientNode.getVersion());
+//        req.setClientId(clientNode.getClientId());
+//        req.setTransferMode(clientNode.getTransferMode());
+//        return req;
+//    }
 
 }

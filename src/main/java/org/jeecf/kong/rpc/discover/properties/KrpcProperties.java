@@ -19,6 +19,10 @@ public class KrpcProperties {
      */
     private String route = "loop";
     /**
+     * 序列化 方式 kryo,protobuf
+     */
+    private String serializer = "kryo";
+    /**
      * 开启 ssl验证
      */
     private boolean ssl = false;
@@ -69,6 +73,14 @@ public class KrpcProperties {
 
     public void setSsl(boolean ssl) {
         this.ssl = ssl;
+    }
+
+    public String getSerializer() {
+        return serializer;
+    }
+
+    public void setSerializer(String serializer) {
+        this.serializer = serializer;
     }
 
 }

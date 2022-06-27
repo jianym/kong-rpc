@@ -8,7 +8,6 @@ import java.util.TreeMap;
 
 import org.jeecf.kong.rpc.common.HandlerContext;
 import org.jeecf.kong.rpc.common.RequestNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
 
@@ -54,16 +53,16 @@ public class ExceptionHandlerContext extends HandlerContext {
         }
     }
 
-    public ExceptionNode exec(Object[] args, Object result, Throwable ex, RequestServerNode reqNode, Request req, Response res) throws Throwable {
+    public ExceptionNode exec(Object[] args, Object result, Throwable ex, RequestServerNode reqNode, Response res) throws Throwable {
         if (tMap == null || tMap.size() == 0) {
             return null;
         }
-        ExceptionJoinPoint joinPoint = new ExceptionJoinPoint(args, result, ex, reqNode, req, res);
+        ExceptionJoinPoint joinPoint = new ExceptionJoinPoint(args, result, ex, reqNode, res);
         for (Map.Entry<Class<? extends Throwable>, ExceptionNode> entry : tMap.entrySet()) {
             Class<? extends Throwable> key = entry.getKey();
             if (key == ex.getClass() || key.isAssignableFrom(ex.getClass())) {
                 ExceptionNode node = entry.getValue();
-                boolean isTarget = isTarget(req.getPath(), node.getBasePath());
+                boolean isTarget = isTarget(reqNode.getPath(), node.getBasePath());
                 if (isTarget) {
                     Method m = node.getM();
                     try {
@@ -89,8 +88,8 @@ public class ExceptionHandlerContext extends HandlerContext {
 
         private Object result;
 
-        public ExceptionJoinPoint(Object[] args, Object result, Throwable ex, RequestNode reqNode, Request req, Response res) {
-            super(reqNode, req, res);
+        public ExceptionJoinPoint(Object[] args, Object result, Throwable ex, RequestNode reqNode, Response res) {
+            super(reqNode, res);
             this.args = args;
             this.result = result;
             this.ex = ex;

@@ -4,8 +4,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.register.KrpcServerProperties.ThreadProperties;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.netty.channel.ChannelHandlerContext;
 
@@ -39,7 +40,7 @@ public class ServerDispather {
         }
     }
 
-    public void dispath(Request request, ChannelHandlerContext ctx, byte serializer) {
+    public void dispath(byte[] request, ChannelHandlerContext ctx, byte serializer) throws InvalidProtocolBufferException {
         executorService.execute(new DispatchTask(request, ctx, serializer));
     }
 

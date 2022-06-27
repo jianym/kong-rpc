@@ -53,14 +53,16 @@ public class KrpcClient {
         if (StringUtils.isNotEmpty(this.basePath))
             path = ResourceLocationUtils.buildPath(this.basePath, path);
         RequestClientNode requestClientNode = buildClientNode(path, version, returnType);
-        return KrpcClientRun.runSync(jsonData, requestClientNode);
+        requestClientNode.setArgs(jsonData);
+        return KrpcClientRun.runSync(requestClientNode);
     }
 
     public <T> Future<T> executionAsync(String path, int version, String jsonData, Class<T> returnType) throws Throwable {
         if (StringUtils.isNotEmpty(this.basePath))
             path = ResourceLocationUtils.buildPath(this.basePath, path);
         RequestClientNode requestClientNode = buildClientNode(path, version, returnType);
-        return KrpcClientRun.run(jsonData, requestClientNode);
+        requestClientNode.setArgs(jsonData);
+        return KrpcClientRun.run(requestClientNode);
     }
 
     private <T> RequestClientNode buildClientNode(String path, int version, Class<T> returnType) {

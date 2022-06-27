@@ -51,9 +51,10 @@ public class ClientProxyInterceptor implements MethodInterceptor {
                 jsonData = JsonMapper.toJson(argMap);
             }
         }
+        clientNode.setArgs(jsonData);
         if (clientNode.isSync())
-            return KrpcClientRun.runSync(jsonData, clientNode);
-        return KrpcClientRun.run(jsonData, clientNode);
+            return KrpcClientRun.runSync(clientNode);
+        return KrpcClientRun.run(clientNode);
     }
 
 }

@@ -87,11 +87,12 @@ public class ZkServerListener {
                         String path = zkNode.getIp() + "-" + zkNode.getPort();
                         if (isRemoteNode(zkNode, alias)) {
                             if (krpcClientProperties.getName().equals(alias))
-                                consumerContainer.put(zkNode.getName(), path, buildServerNode(zkNode, krpcClientProperties.getSocket(), krpcClientProperties.isSsl()));
+                                consumerContainer.put(zkNode.getName(), path,
+                                        buildServerNode(zkNode, krpcClientProperties.getSocket(), krpcClientProperties.isSsl(), krpcClientProperties.getSerializer()));
                             else {
                                 KrpcProperties krpcProperties = getKrpcProperties(alias);
                                 if (krpcProperties != null) {
-                                    consumerContainer.put(zkNode.getName(), path, buildServerNode(zkNode, krpcProperties.getSocket(), krpcProperties.isSsl()));
+                                    consumerContainer.put(zkNode.getName(), path, buildServerNode(zkNode, krpcProperties.getSocket(), krpcProperties.isSsl(), krpcProperties.getSerializer()));
                                 }
                             }
                         }
@@ -137,7 +138,7 @@ public class ZkServerListener {
         return false;
     }
 
-    private ServerNode buildServerNode(CenterNode zkNode, SocketProperties properties, boolean ssl) throws Exception {
+    private ServerNode buildServerNode(CenterNode zkNode, SocketProperties properties, boolean ssl, String serializer) throws Exception {
         ServerNode node = consumerContainer.new ServerNode();
         node.setState(ServerNode.STATE_INIT);
         node.setIp(zkNode.getIp());
@@ -147,6 +148,7 @@ public class ZkServerListener {
         node.setHeight(properties.getHeight());
         node.setBytes(properties.getBytes());
         node.setSsl(ssl);
+        node.setSerializer(serializer);
         node.setName(zkNode.getName());
         if (properties.isConnect()) {
             NettyClient client = NettyClientFactory.getInstance(node);

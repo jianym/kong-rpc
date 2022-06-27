@@ -2,7 +2,6 @@ package org.jeecf.kong.rpc.discover;
 
 import org.jeecf.kong.rpc.common.HandlerContext;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 
 /**
@@ -30,12 +29,12 @@ public class ClientHandlerContext extends HandlerContext {
 
     protected class ClientJoinPoint extends JoinPoint {
 
-        public ClientJoinPoint(RequestClientNode node, Request req, Response res) {
-            super(node, req, res);
+        public ClientJoinPoint(RequestClientNode node, Response res) {
+            super(node, res);
             this.alias = node.getAlias();
             this.retry = node.getRetry();
             this.timeout = node.getTimeout();
-            this.args = req.getArgs();
+            this.args = node.getArgs();
         }
 
         /**

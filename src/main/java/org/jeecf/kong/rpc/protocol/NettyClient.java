@@ -11,8 +11,6 @@ import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.protocol.serializer.MsgDecoder;
 import org.jeecf.kong.rpc.protocol.serializer.MsgEncoder;
 import org.jeecf.kong.rpc.protocol.serializer.MsgProtocol;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
-import org.jeecf.kong.rpc.protocol.serializer.Serializer;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -67,22 +65,17 @@ public class NettyClient {
         return true;
     }
 
-    public boolean send(String host, int port, Request req, Serializer serializer) throws InterruptedException {
+    public boolean send(String host, int port,MsgProtocol protocol,String clientSpan) throws InterruptedException {
         boolean isConnection = this.connection(host, port);
         if (!isConnection || !ch.isWritable()) {
             return false;
         }
-        MsgProtocol msg = new MsgProtocol();
-        byte[] content = Serializer.getSerializer(serializer, req);
-        msg.setSerializer(Serializer.getSerializer(serializer));
-        msg.setContentLength(content.length);
-        msg.setContent(content);
-        ChannelFuture clientFuture = ch.writeAndFlush(msg);
+        ChannelFuture clientFuture = ch.writeAndFlush(protocol);
         clientFuture.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 if (!future.isSuccess()) {
-                    ContextEntity entity = ContextContainer.getInstance().get(req.getClientSpan());
+                    ContextEntity entity = ContextContainer.getInstance().get(clientSpan);
                     if (entity != null && entity.getThread() != null) {
                         Thread t = entity.getThread();
                         if (t.getState().equals(State.TIMED_WAITING) || t.getState().equals(State.WAITING))

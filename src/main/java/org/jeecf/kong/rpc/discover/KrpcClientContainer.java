@@ -57,6 +57,8 @@ public class KrpcClientContainer {
 
         private String clientId;
 
+        private String args;
+
         private byte transferMode = ConstantValue.WHOLE_MODE;
 
         public String getAlias() {
@@ -129,6 +131,14 @@ public class KrpcClientContainer {
 
         public void setKeepAlive(boolean keepAlive) {
             this.keepAlive = keepAlive;
+        }
+
+        public String getArgs() {
+            return args;
+        }
+
+        public void setArgs(String args) {
+            this.args = args;
         }
 
     }

@@ -8,7 +8,6 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.jeecf.kong.rpc.common.HandlerContext;
 import org.jeecf.kong.rpc.common.RequestNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
 
@@ -41,11 +40,11 @@ public class BeforeHandlerContext extends HandlerContext {
         nodes.add(node);
     }
 
-    public void exec(Object[] args, RequestServerNode reqNode, Request req, Response res) throws Throwable {
+    public void exec(Object[] args, RequestServerNode reqNode, Response res) throws Throwable {
         if (CollectionUtils.isNotEmpty(nodes)) {
-            BeforeJoinPoint joinPoint = new BeforeJoinPoint(args, reqNode, req, res);
+            BeforeJoinPoint joinPoint = new BeforeJoinPoint(args, reqNode, res);
             for (BeforeNode node : nodes) {
-                boolean isTarget = isTarget(req.getPath(), node.getBasePath());
+                boolean isTarget = isTarget(reqNode.getPath(), node.getBasePath());
                 if (isTarget) {
                     Method m = node.getM();
                     try {
@@ -64,8 +63,8 @@ public class BeforeHandlerContext extends HandlerContext {
 
         private Object[] args;
 
-        public BeforeJoinPoint(Object[] args, RequestNode reqNode, Request req, Response res) {
-            super(reqNode, req, res);
+        public BeforeJoinPoint(Object[] args, RequestNode reqNode, Response res) {
+            super(reqNode, res);
             this.args = args;
         }
 

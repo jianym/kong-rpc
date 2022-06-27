@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 
 /**
  * 客户端前置拦截上下文
@@ -38,11 +37,11 @@ public class BeforeHandlerContext extends ClientHandlerContext {
         nodes.add(node);
     }
 
-    public void exec(RequestClientNode reqNode, Request req) throws Exception {
+    public void exec(RequestClientNode reqNode) throws Exception {
         if (CollectionUtils.isNotEmpty(nodes)) {
-            BeforeJoinPoint joinPoint = new BeforeJoinPoint(reqNode, req);
+            BeforeJoinPoint joinPoint = new BeforeJoinPoint(reqNode);
             for (BeforeNode node : nodes) {
-                boolean isTarget = isTarget(reqNode.getAlias(), node.getAlias(), req.getPath(), node.getBasePath());
+                boolean isTarget = isTarget(reqNode.getAlias(), node.getAlias(), reqNode.getPath(), node.getBasePath());
                 if (isTarget) {
                     Method m = node.getM();
                     try {
@@ -59,8 +58,8 @@ public class BeforeHandlerContext extends ClientHandlerContext {
 
     public class BeforeJoinPoint extends ClientJoinPoint {
 
-        public BeforeJoinPoint(RequestClientNode reqNode, Request req) {
-            super(reqNode, req, null);
+        public BeforeJoinPoint(RequestClientNode reqNode) {
+            super(reqNode, null);
         }
 
     }

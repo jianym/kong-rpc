@@ -5,7 +5,6 @@ import java.lang.reflect.Method;
 
 import org.jeecf.kong.rpc.common.HandlerContext;
 import org.jeecf.kong.rpc.common.RequestNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
 
@@ -46,8 +45,8 @@ public class AroundHandlerContext extends HandlerContext {
         }
     }
 
-    public Object exec(Object[] args, RequestServerNode reqNode, Request req, Response res) throws Throwable {
-        AroundJoinPoint joinPoint = new AroundJoinPoint(args, head, reqNode, req, res);
+    public Object exec(Object[] args, RequestServerNode reqNode, Response res) throws Throwable {
+        AroundJoinPoint joinPoint = new AroundJoinPoint(args, head, reqNode, res);
         return joinPoint.processon();
     }
 
@@ -59,8 +58,8 @@ public class AroundHandlerContext extends HandlerContext {
 
         private Object result;
 
-        public AroundJoinPoint(Object[] args, AroundNode node, RequestNode reqNode, Request req, Response res) {
-            super(reqNode, req, res);
+        public AroundJoinPoint(Object[] args, AroundNode node, RequestNode reqNode, Response res) {
+            super(reqNode, res);
             this.args = args;
             this.node = node;
         }

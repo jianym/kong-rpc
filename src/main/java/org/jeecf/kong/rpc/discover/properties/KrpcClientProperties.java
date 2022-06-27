@@ -24,9 +24,13 @@ public class KrpcClientProperties {
      */
     private String name = "";
     /**
-     * 路由
+     * 路由 loop,hash,random
      */
     private String route = "loop";
+    /**
+     * 序列化 方式
+     */
+    private String serializer = "kryo";
     /**
      * 开启 ssl验证
      */

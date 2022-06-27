@@ -141,6 +141,8 @@ public class ConsumerContainer {
 
         private String name;
 
+        private String serializer = "kryo";
+
         public int getTimeout() {
             return timeout;
         }
@@ -227,6 +229,14 @@ public class ConsumerContainer {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public String getSerializer() {
+            return serializer;
+        }
+
+        public void setSerializer(String serializer) {
+            this.serializer = serializer;
         }
 
     }

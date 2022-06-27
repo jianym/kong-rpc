@@ -5,7 +5,6 @@ import java.lang.reflect.Method;
 
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
 import org.jeecf.kong.rpc.exchange.Route;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 
 /**
  * 环绕拦截上下文
@@ -44,8 +43,8 @@ public class AroundHandlerContext extends ClientHandlerContext {
         }
     }
 
-    public Object exec(RequestClientNode reqNode, Route route, Request req) throws Exception {
-        AroundJoinPoint joinPoint = new AroundJoinPoint(head, route, reqNode, req);
+    public Object exec(RequestClientNode reqNode, Route route) throws Exception {
+        AroundJoinPoint joinPoint = new AroundJoinPoint(head, route, reqNode);
         return joinPoint.processon();
     }
 
@@ -57,14 +56,12 @@ public class AroundHandlerContext extends ClientHandlerContext {
 
         private Route route;
 
-        private Request request;
 
         private RequestClientNode reqNode;
 
-        public AroundJoinPoint(AroundNode node, Route route, RequestClientNode reqNode, Request req) {
-            super(reqNode, req, null);
+        public AroundJoinPoint(AroundNode node, Route route, RequestClientNode reqNode) {
+            super(reqNode,null);
             this.node = node;
-            this.request = req;
             this.route = route;
             this.reqNode = reqNode;
         }
@@ -86,7 +83,7 @@ public class AroundHandlerContext extends ClientHandlerContext {
                 }
                 node = node.getNext();
             }
-            return route.send(reqNode, request);
+            return route.send(reqNode);
         }
 
         public ClientJoinPoint getSuper() {

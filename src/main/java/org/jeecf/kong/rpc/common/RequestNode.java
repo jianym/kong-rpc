@@ -9,6 +9,19 @@ import java.lang.reflect.Method;
  *
  */
 public class RequestNode {
+
+    /**
+     * 当前全局id
+     */
+    private String traceId;
+    /**
+     * 当前
+     */
+    private String clientSpan;
+    /**
+     * 请求时间
+     */
+    private Long time;
     /**
      * 路径
      */
@@ -59,6 +72,30 @@ public class RequestNode {
 
     public void setVersion(int version) {
         this.version = version;
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
+    }
+
+    public String getClientSpan() {
+        return clientSpan;
+    }
+
+    public void setClientSpan(String clientSpan) {
+        this.clientSpan = clientSpan;
+    }
+
+    public Long getTime() {
+        return time;
+    }
+
+    public void setTime(Long time) {
+        this.time = time;
     }
 
 }

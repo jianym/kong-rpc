@@ -1,6 +1,6 @@
 package org.jeecf.kong.rpc.discover;
 
-import org.jeecf.kong.rpc.protocol.serializer.Response;
+import org.jeecf.kong.rpc.protocol.serializer.ResponseSerializerHelper;
 
 import lombok.Data;
 
@@ -19,6 +19,6 @@ public class ContextEntity {
     /**
      * 响应数据
      */
-    private volatile Response response;
+    private volatile ResponseSerializerHelper responseHelper;
 
 }

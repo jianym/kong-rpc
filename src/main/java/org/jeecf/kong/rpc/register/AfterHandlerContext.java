@@ -8,7 +8,6 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.jeecf.kong.rpc.common.HandlerContext;
 import org.jeecf.kong.rpc.common.RequestNode;
-import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 import org.jeecf.kong.rpc.register.ProviderContainer.RequestServerNode;
 
@@ -41,11 +40,11 @@ public class AfterHandlerContext extends HandlerContext {
         nodes.add(node);
     }
 
-    public void exec(Object[] args, Object result, RequestServerNode reqNode, Request req, Response res) throws Throwable {
+    public void exec(Object[] args, Object result, RequestServerNode reqNode, Response res) throws Throwable {
         if (CollectionUtils.isNotEmpty(nodes)) {
-            AfterJoinPoint joinPoint = new AfterJoinPoint(args, result, reqNode, req, res);
+            AfterJoinPoint joinPoint = new AfterJoinPoint(args, result, reqNode, res);
             for (AfterNode node : nodes) {
-                boolean isTarget = isTarget(req.getPath(), node.getBasePath());
+                boolean isTarget = isTarget(reqNode.getPath(), node.getBasePath());
                 if (isTarget) {
                     Method m = node.getM();
                     try {
@@ -66,8 +65,8 @@ public class AfterHandlerContext extends HandlerContext {
 
         private Object result;
 
-        public AfterJoinPoint(Object[] args, Object result, RequestNode node, Request req, Response res) {
-            super(node, req, res);
+        public AfterJoinPoint(Object[] args, Object result, RequestNode node, Response res) {
+            super(node,  res);
             this.args = args;
             this.result = result;
         }
