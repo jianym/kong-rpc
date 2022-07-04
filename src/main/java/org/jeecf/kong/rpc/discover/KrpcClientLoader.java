@@ -59,8 +59,6 @@ public class KrpcClientLoader {
                     timeout = krpc.timeout();
                 if (krpc.fallback() && fallback != null) {
                     node.setFallBack(fallback);
-                } else {
-                    throw new ClassNotFoundException();
                 }
                 node.setKeepAlive(krpc.keepAlive());
                 node.setAlias(client.alias());

@@ -67,16 +67,12 @@ public class NettyClient {
         return true;
     }
 
-    public boolean send(String host, int port, Request req, Serializer serializer) throws InterruptedException {
+    public boolean send(String host, int port, Request req,MsgProtocol msg) throws InterruptedException {
         boolean isConnection = this.connection(host, port);
         if (!isConnection || !ch.isWritable()) {
             return false;
         }
-        MsgProtocol msg = new MsgProtocol();
-        byte[] content = Serializer.getSerializer(serializer, req);
-        msg.setSerializer(Serializer.getSerializer(serializer));
-        msg.setContentLength(content.length);
-        msg.setContent(content);
+      
         ChannelFuture clientFuture = ch.writeAndFlush(msg);
         clientFuture.addListener(new ChannelFutureListener() {
             @Override
