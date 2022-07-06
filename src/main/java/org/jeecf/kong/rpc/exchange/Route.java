@@ -16,6 +16,7 @@ import org.jeecf.kong.rpc.discover.ContextEntity;
 import org.jeecf.kong.rpc.discover.KrpcClientContainer.RequestClientNode;
 import org.jeecf.kong.rpc.protocol.NettyClient;
 import org.jeecf.kong.rpc.protocol.serializer.ConstantValue;
+import org.jeecf.kong.rpc.protocol.serializer.MsgProtocol;
 import org.jeecf.kong.rpc.protocol.serializer.Request;
 import org.jeecf.kong.rpc.protocol.serializer.Response;
 import org.jeecf.kong.rpc.protocol.serializer.Serializer;
@@ -50,6 +51,11 @@ public abstract class Route {
             timeout = WAIT_MS;
         }
         log.debug("client is send,req={}", req);
+        MsgProtocol msg = new MsgProtocol();
+        byte[] content = Serializer.getSerializer(Serializer.KYRO, req);
+        msg.setSerializer(Serializer.getSerializer(Serializer.KYRO));
+        msg.setContentLength(content.length);
+        msg.setContent(content);
         while (i <= retry) {
             if (i > 0) {
                 log.warn("client is retry,num={},req={}", i, req);
@@ -57,7 +63,7 @@ public abstract class Route {
             ServerNode server = null;
             try {
                 server = getTransferServerNode(reqNode, req);
-                boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), req, Serializer.KYRO);
+                boolean send = server.getNettyClient().send(server.getIp(), server.getPort(), req, msg);
                 if (!send) {
                     throw new SocketException("socket connection fail...");
                 }
