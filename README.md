@@ -11,7 +11,7 @@ kong-rpc 采用单一长连接模式，支持短连接，ssl验证，分片传�
 <dependency>
     <groupId>org.jeecf</groupId>
     <artifactId>kong-rpc</artifactId>
-    <version>1.0-RELEASE</version>
+    <version>1.1-RELEASE</version>
 </dependency>
 ``` 
 ### 服务端接入
